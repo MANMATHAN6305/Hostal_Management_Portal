@@ -1,17 +1,15 @@
 const { Sequelize } = require('sequelize');
 
 // Handle empty password properly for XAMPP
-const dbPassword = process.env.DB_PASSWORD === '' || process.env.DB_PASSWORD === undefined 
-  ? null 
-  : process.env.DB_PASSWORD;
+const dbPassword = process.env.DB_PASSWORD || '';
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME || 'hostel_management_db',
+  process.env.DB_NAME || 'hostel_portal',
   process.env.DB_USER || 'root',
   dbPassword,
   {
     host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
+    port: parseInt(process.env.DB_PORT) || 3306,
     dialect: 'mysql',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {

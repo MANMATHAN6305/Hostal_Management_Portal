@@ -10,7 +10,6 @@ const Room = sequelize.define('Room', {
   roomNumber: {
     type: DataTypes.STRING(10),
     allowNull: false,
-    unique: true,
     field: 'room_number'
   },
   roomType: {

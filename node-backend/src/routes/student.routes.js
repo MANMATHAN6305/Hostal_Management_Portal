@@ -101,6 +101,15 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Create student error:', error);
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      if (error.fields && (error.fields.student_id || error.fields.studentId)) {
+        return res.status(400).json({ message: 'Student ID already exists. Please use a different Student ID.' });
+      }
+      if (error.fields && error.fields.email) {
+        return res.status(400).json({ message: 'Email already exists. Please use a different email.' });
+      }
+      return res.status(400).json({ message: 'A student with this information already exists.' });
+    }
     res.status(500).json({ message: 'Server error creating student' });
   }
 });

@@ -10,7 +10,6 @@ const Student = sequelize.define('Student', {
   studentId: {
     type: DataTypes.STRING(20),
     allowNull: false,
-    unique: true,
     field: 'student_id'
   },
   firstName: {
@@ -26,7 +25,6 @@ const Student = sequelize.define('Student', {
   email: {
     type: DataTypes.STRING(255),
     allowNull: false,
-    unique: true,
     validate: {
       isEmail: true
     }

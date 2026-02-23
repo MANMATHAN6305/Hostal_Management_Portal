@@ -68,8 +68,9 @@ async function startServer() {
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully.');
     
-    // Sync all models (creates tables if they don't exist)
-    await sequelize.sync({ alter: true });
+    // Sync all models - use { force: false } to not alter existing tables
+    // Tables already exist from Spring Boot, so we just verify connection
+    await sequelize.sync({ force: false });
     console.log('✅ Database synchronized.');
     
     app.listen(PORT, () => {

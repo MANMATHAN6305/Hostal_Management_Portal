@@ -114,6 +114,9 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Create room error:', error);
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ message: 'Room number already exists. Please use a different room number.' });
+    }
     res.status(500).json({ message: 'Server error creating room' });
   }
 });
