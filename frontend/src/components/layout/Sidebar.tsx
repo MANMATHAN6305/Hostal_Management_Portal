@@ -5,6 +5,8 @@ const navItems = [
   { href: '/rooms', label: 'Rooms', icon: '🛏️' },
   { href: '/students', label: 'Students', icon: '👥' },
   { href: '/allocations', label: 'Allocations', icon: '📅' },
+  { href: '/complaints', label: 'Complaints', icon: '📢' },
+  { href: '/menu', label: 'Weekly Menu', icon: '🍽️' },
 ];
 
 const quickActions = [
@@ -23,6 +25,8 @@ export function Sidebar() {
     localStorage.removeItem('userName');
     localStorage.removeItem('userId');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('token');
+    localStorage.removeItem('studentId');
     navigate('/login');
   };
 

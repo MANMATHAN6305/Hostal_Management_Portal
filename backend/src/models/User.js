@@ -9,36 +9,25 @@ const User = sequelize.define('User', {
   },
   fullName: {
     type: DataTypes.STRING(100),
-    allowNull: false,
-    field: 'full_name'
+    allowNull: false
   },
   email: {
-    type: DataTypes.STRING(255),
+    type: DataTypes.STRING(150),
     allowNull: false,
-    validate: {
-      isEmail: true
-    }
+    unique: true
   },
   password: {
     type: DataTypes.STRING(255),
     allowNull: false
   },
   role: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-    defaultValue: 'ADMIN'
+    type: DataTypes.ENUM('ADMIN', 'WARDEN', 'STAFF', 'STUDENT','Select Role'),
+    defaultValue: 'Select Role'
   },
   isActive: {
     type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: true,
-    field: 'is_active'
+    defaultValue: true
   }
-}, {
-  tableName: 'users',
-  timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: false
 });
 
 module.exports = User;

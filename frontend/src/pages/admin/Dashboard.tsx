@@ -40,13 +40,12 @@ export default function Dashboard() {
       const allocationsArray = Array.isArray(allocations) ? allocations : [];
 
       const availableRooms = roomsArray.filter((r: Room) => r.status === 'AVAILABLE').length;
-      const activeAllocations = allocationsArray.filter((a: Booking) => a.status === 'ACTIVE').length;
 
       setStats({
         totalRooms: roomsArray.length,
         availableRooms,
         totalStudents: studentsArray.length,
-        activeAllocations,
+        activeAllocations: allocationsArray.length,
       });
 
       setRecentAllocations(allocationsArray.slice(0, 5));
@@ -60,7 +59,7 @@ export default function Dashboard() {
   const statsDisplay = [
     { title: 'Total Rooms', value: stats.totalRooms, icon: '🛏️', href: '/rooms' },
     { title: 'Available Rooms', value: stats.availableRooms, icon: '✅', href: '/rooms' },
-    { title: 'Active Allocations', value: stats.activeAllocations, icon: '📅', href: '/allocations' },
+    { title: 'Total Allocations', value: stats.activeAllocations, icon: '📅', href: '/allocations' },
     { title: 'Total Students', value: stats.totalStudents, icon: '👥', href: '/students' },
   ];
 

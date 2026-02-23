@@ -3,6 +3,21 @@ const router = express.Router();
 const Room = require('../models/Room');
 const { Op } = require('sequelize');
 
+// Helper function to format room response
+const formatRoom = (room) => ({
+  id: room.id,
+  roomNumber: room.roomNumber,
+  roomType: room.roomType,
+  capacity: room.capacity,
+  occupied: room.occupied,
+  floorNumber: room.floorNumber,
+  blockName: room.blockName,
+  status: room.status,
+  pricePerNight: room.pricePerNight,
+  description: room.description,
+  amenities: room.amenities
+});
+
 // GET /api/rooms - Get all rooms
 router.get('/', async (req, res) => {
   try {
@@ -10,18 +25,7 @@ router.get('/', async (req, res) => {
       order: [['id', 'DESC']]
     });
     
-    res.json(rooms.map(room => ({
-      id: room.id,
-      roomNumber: room.roomNumber,
-      roomType: room.roomType,
-      pricePerNight: room.pricePerNight,
-      status: room.status,
-      description: room.description,
-      capacity: room.capacity,
-      floorNumber: room.floorNumber,
-      blockName: room.blockName,
-      amenities: room.amenities
-    })));
+    res.json(rooms.map(formatRoom));
   } catch (error) {
     console.error('Get rooms error:', error);
     res.status(500).json({ message: 'Server error fetching rooms' });
@@ -38,18 +42,7 @@ router.get('/available', async (req, res) => {
       order: [['roomNumber', 'ASC']]
     });
     
-    res.json(rooms.map(room => ({
-      id: room.id,
-      roomNumber: room.roomNumber,
-      roomType: room.roomType,
-      pricePerNight: room.pricePerNight,
-      status: room.status,
-      description: room.description,
-      capacity: room.capacity,
-      floorNumber: room.floorNumber,
-      blockName: room.blockName,
-      amenities: room.amenities
-    })));
+    res.json(rooms.map(formatRoom));
   } catch (error) {
     console.error('Get available rooms error:', error);
     res.status(500).json({ message: 'Server error fetching available rooms' });
@@ -65,18 +58,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Room not found' });
     }
     
-    res.json({
-      id: room.id,
-      roomNumber: room.roomNumber,
-      roomType: room.roomType,
-      pricePerNight: room.pricePerNight,
-      status: room.status,
-      description: room.description,
-      capacity: room.capacity,
-      floorNumber: room.floorNumber,
-      blockName: room.blockName,
-      amenities: room.amenities
-    });
+    res.json(formatRoom(room));
   } catch (error) {
     console.error('Get room error:', error);
     res.status(500).json({ message: 'Server error fetching room' });
@@ -88,30 +70,20 @@ router.post('/', async (req, res) => {
   try {
     const roomData = {
       roomNumber: req.body.roomNumber,
-      roomType: req.body.roomType,
-      pricePerNight: req.body.pricePerNight,
+      roomType: req.body.roomType || 'DOUBLE',
+      capacity: req.body.capacity || 4,
+      occupied: req.body.occupied || 0,
+      floorNumber: req.body.floorNumber || 1,
+      blockName: req.body.blockName || 'A',
       status: req.body.status || 'AVAILABLE',
-      description: req.body.description,
-      capacity: req.body.capacity,
-      floorNumber: req.body.floorNumber,
-      blockName: req.body.blockName,
-      amenities: req.body.amenities
+      pricePerNight: req.body.pricePerNight || 0,
+      description: req.body.description || '',
+      amenities: req.body.amenities || ''
     };
     
     const room = await Room.create(roomData);
     
-    res.json({
-      id: room.id,
-      roomNumber: room.roomNumber,
-      roomType: room.roomType,
-      pricePerNight: room.pricePerNight,
-      status: room.status,
-      description: room.description,
-      capacity: room.capacity,
-      floorNumber: room.floorNumber,
-      blockName: room.blockName,
-      amenities: room.amenities
-    });
+    res.json(formatRoom(room));
   } catch (error) {
     console.error('Create room error:', error);
     if (error.name === 'SequelizeUniqueConstraintError') {
@@ -133,27 +105,17 @@ router.put('/:id', async (req, res) => {
     await room.update({
       roomNumber: req.body.roomNumber,
       roomType: req.body.roomType,
-      pricePerNight: req.body.pricePerNight,
-      status: req.body.status,
-      description: req.body.description,
       capacity: req.body.capacity,
+      occupied: req.body.occupied,
       floorNumber: req.body.floorNumber,
       blockName: req.body.blockName,
+      status: req.body.status,
+      pricePerNight: req.body.pricePerNight,
+      description: req.body.description,
       amenities: req.body.amenities
     });
     
-    res.json({
-      id: room.id,
-      roomNumber: room.roomNumber,
-      roomType: room.roomType,
-      pricePerNight: room.pricePerNight,
-      status: room.status,
-      description: room.description,
-      capacity: room.capacity,
-      floorNumber: room.floorNumber,
-      blockName: room.blockName,
-      amenities: room.amenities
-    });
+    res.json(formatRoom(room));
   } catch (error) {
     console.error('Update room error:', error);
     res.status(500).json({ message: 'Server error updating room' });

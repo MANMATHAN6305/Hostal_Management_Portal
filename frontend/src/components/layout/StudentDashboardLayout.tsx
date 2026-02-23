@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
+import { StudentSidebar } from './StudentSidebar';
 import { Header } from './Header';
 
-export default function DashboardLayout() {
+export default function StudentDashboardLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,15 +15,15 @@ export default function DashboardLayout() {
       return;
     }
 
-    // Redirect students to student dashboard
-    if (userRole === 'STUDENT') {
-      navigate('/student/dashboard');
+    // Redirect non-students to admin dashboard
+    if (userRole !== 'STUDENT') {
+      navigate('/dashboard');
     }
   }, [navigate]);
 
   return (
     <div className="flex min-h-screen bg-slate-100">
-      <Sidebar />
+      <StudentSidebar />
       <div className="flex-1 flex flex-col">
         <Header />
         <main className="flex-1 p-6">

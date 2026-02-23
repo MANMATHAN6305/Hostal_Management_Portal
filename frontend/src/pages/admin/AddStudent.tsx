@@ -39,8 +39,8 @@ export default function AddStudent() {
       });
       alert('Student added successfully!');
       navigate('/students');
-    } catch (error) {
-      alert('Failed to add student. Please check if the server is running.');
+    } catch (error: any) {
+      alert(error.message || 'Failed to add student. Please check if the server is running.');
     } finally {
       setLoading(false);
     }

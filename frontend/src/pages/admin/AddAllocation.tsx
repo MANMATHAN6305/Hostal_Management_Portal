@@ -54,9 +54,9 @@ export default function AddAllocation() {
         specialRequests: formData.specialRequests
       });
       navigate('/allocations');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create allocation:', error);
-      alert('Failed to create allocation');
+      alert(error.message || 'Failed to create allocation');
       setLoading(false);
     }
   };

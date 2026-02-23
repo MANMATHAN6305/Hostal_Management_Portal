@@ -8,50 +8,40 @@ const Room = sequelize.define('Room', {
     autoIncrement: true
   },
   roomNumber: {
-    type: DataTypes.STRING(10),
+    type: DataTypes.STRING(20),
     allowNull: false,
-    field: 'room_number'
+    unique: true
   },
   roomType: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-    field: 'room_type'
+    type: DataTypes.ENUM('SINGLE', 'DOUBLE', 'TRIPLE', 'DORMITORY', 'Select Room Type'),
+    defaultValue: 'Select Room Type'
   },
-  pricePerNight: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    field: 'fee_per_semester'
-  },
-  status: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-    defaultValue: 'AVAILABLE'
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  capacity: {
+  occupied: {
     type: DataTypes.INTEGER,
-    allowNull: false
+    defaultValue: 0
   },
   floorNumber: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'floor_number'
+    defaultValue: 1
   },
   blockName: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    field: 'block_name'
+    defaultValue: 'A'
+  },
+  status: {
+    type: DataTypes.ENUM('AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'Select Room Status'),
+    defaultValue: 'Select Room Status'
+  },
+  pricePerNight: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0
+  },
+  description: {
+    type: DataTypes.TEXT
   },
   amenities: {
-    type: DataTypes.STRING(500),
-    allowNull: true
+    type: DataTypes.STRING(255)
   }
-}, {
-  tableName: 'rooms',
-  timestamps: false
 });
 
 module.exports = Room;

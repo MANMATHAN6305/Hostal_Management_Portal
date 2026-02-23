@@ -37,8 +37,8 @@ export default function AddRoom() {
       });
       alert('Room added successfully!');
       navigate('/rooms');
-    } catch (error) {
-      alert('Failed to add room. Please check if the server is running.');
+    } catch (error: any) {
+      alert(error.message || 'Failed to add room. Please check if the server is running.');
     } finally {
       setLoading(false);
     }

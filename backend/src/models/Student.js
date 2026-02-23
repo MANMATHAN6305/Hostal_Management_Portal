@@ -8,73 +8,49 @@ const Student = sequelize.define('Student', {
     autoIncrement: true
   },
   studentId: {
-    type: DataTypes.STRING(20),
-    allowNull: false,
-    field: 'student_id'
+    type: DataTypes.STRING(50),
+    unique: true,
+    allowNull: false
   },
   firstName: {
     type: DataTypes.STRING(100),
-    allowNull: false,
-    field: 'first_name'
+    allowNull: false
   },
   lastName: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-    field: 'last_name'
+    type: DataTypes.STRING(100)
   },
   email: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    validate: {
-      isEmail: true
-    }
+    type: DataTypes.STRING(150),
+    unique: true
   },
   phone: {
-    type: DataTypes.STRING(20),
-    allowNull: true
+    type: DataTypes.STRING(20)
   },
   address: {
-    type: DataTypes.STRING(500),
-    allowNull: true
+    type: DataTypes.TEXT
   },
   department: {
-    type: DataTypes.STRING(100),
-    allowNull: false
+    type: DataTypes.STRING(100)
   },
   year: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'study_year'
+    type: DataTypes.INTEGER
   },
   dateOfBirth: {
-    type: DataTypes.DATEONLY,
-    allowNull: true,
-    field: 'date_of_birth'
+    type: DataTypes.DATEONLY
   },
   guardianName: {
-    type: DataTypes.STRING(100),
-    allowNull: true,
-    field: 'guardian_name'
+    type: DataTypes.STRING(100)
   },
   guardianPhone: {
-    type: DataTypes.STRING(20),
-    allowNull: true,
-    field: 'guardian_phone'
+    type: DataTypes.STRING(20)
   },
   bloodGroup: {
-    type: DataTypes.STRING(5),
-    allowNull: true,
-    field: 'blood_group'
+    type: DataTypes.STRING(10)
   },
   gender: {
-    type: DataTypes.STRING(10),
-    allowNull: false
+    type: DataTypes.ENUM('MALE', 'FEMALE', 'Select Gender'),
+    defaultValue: 'Select Gender'
   }
-}, {
-  tableName: 'students',
-  timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at'
 });
 
 module.exports = Student;

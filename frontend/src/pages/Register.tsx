@@ -9,7 +9,7 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'STAFF',
+    role: 'STUDENT',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -112,6 +112,7 @@ export default function Register() {
               onChange={handleChange}
               className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
             >
+              <option value="STUDENT">Student</option>
               <option value="STAFF">Staff</option>
               <option value="WARDEN">Warden</option>
               <option value="ADMIN">Admin</option>

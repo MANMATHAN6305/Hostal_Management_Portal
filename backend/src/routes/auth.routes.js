@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Student = require('../models/Student');
+const { generateToken, verifyToken } = require('../middleware/auth');
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -16,7 +18,8 @@ router.post('/login', async (req, res) => {
         userId: null,
         fullName: null,
         email: null,
-        role: null
+        role: null,
+        token: null
       });
     }
     
@@ -27,8 +30,21 @@ router.post('/login', async (req, res) => {
         userId: null,
         fullName: null,
         email: null,
-        role: null
+        role: null,
+        token: null
       });
+    }
+
+    // Generate JWT token
+    const token = generateToken(user);
+
+    // If student, also get student ID
+    let studentId = null;
+    if (user.role === 'STUDENT') {
+      const student = await Student.findOne({ where: { email: user.email } });
+      if (student) {
+        studentId = student.id;
+      }
     }
     
     res.json({
@@ -37,7 +53,9 @@ router.post('/login', async (req, res) => {
       userId: user.id,
       fullName: user.fullName,
       email: user.email,
-      role: user.role
+      role: user.role,
+      token: token,
+      studentId: studentId
     });
   } catch (error) {
     console.error('Login error:', error);

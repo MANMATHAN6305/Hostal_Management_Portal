@@ -39,7 +39,11 @@ export const roomsApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to create room');
+    }
+    return result;
   },
 
   update: async (id: number, data: any) => {
@@ -48,7 +52,11 @@ export const roomsApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to update room');
+    }
+    return result;
   },
 
   delete: async (id: number) => {
@@ -82,7 +90,11 @@ export const studentsApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to create student');
+    }
+    return result;
   },
 
   update: async (id: number, data: any) => {
@@ -91,7 +103,11 @@ export const studentsApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to update student');
+    }
+    return result;
   },
 
   delete: async (id: number) => {
@@ -120,7 +136,11 @@ export const allocationsApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to create allocation');
+    }
+    return result;
   },
 
   update: async (id: number, data: any) => {
@@ -129,7 +149,11 @@ export const allocationsApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to update allocation');
+    }
+    return result;
   },
 
   delete: async (id: number) => {
@@ -137,5 +161,121 @@ export const allocationsApi = {
       method: 'DELETE',
     });
     return response.ok;
+  },
+};
+
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : '',
+  };
+};
+
+// Student Portal API
+export const studentApi = {
+  getProfile: async () => {
+    const response = await fetch(`${API_BASE_URL}/student/me`, {
+      headers: getAuthHeaders(),
+    });
+    return response.json();
+  },
+
+  getRoom: async () => {
+    const response = await fetch(`${API_BASE_URL}/student/room`, {
+      headers: getAuthHeaders(),
+    });
+    return response.json();
+  },
+
+  getMenu: async () => {
+    const response = await fetch(`${API_BASE_URL}/student/menu`, {
+      headers: getAuthHeaders(),
+    });
+    return response.json();
+  },
+
+  getComplaints: async () => {
+    const response = await fetch(`${API_BASE_URL}/student/complaints`, {
+      headers: getAuthHeaders(),
+    });
+    return response.json();
+  },
+
+  submitComplaint: async (data: { message: string; category: string }) => {
+    const response = await fetch(`${API_BASE_URL}/student/complaint`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  getDashboard: async () => {
+    const response = await fetch(`${API_BASE_URL}/student/dashboard`, {
+      headers: getAuthHeaders(),
+    });
+    return response.json();
+  },
+};
+
+// Admin API for Complaints and Menu
+export const adminApi = {
+  // Complaints
+  getComplaints: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/complaints`, {
+      headers: getAuthHeaders(),
+    });
+    return response.json();
+  },
+
+  getComplaint: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/admin/complaints/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return response.json();
+  },
+
+  updateComplaint: async (id: number, data: { status?: string; adminReply?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/admin/complaints/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  deleteComplaint: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/admin/complaints/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return response.json();
+  },
+
+  // Menu
+  getMenu: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/menu`, {
+      headers: getAuthHeaders(),
+    });
+    return response.json();
+  },
+
+  updateMenu: async (data: { weekStartDate: string; menuItems: any[] }) => {
+    const response = await fetch(`${API_BASE_URL}/admin/menu`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  // Stats
+  getStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+      headers: getAuthHeaders(),
+    });
+    return response.json();
   },
 };

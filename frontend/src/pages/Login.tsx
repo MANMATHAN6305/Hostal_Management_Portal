@@ -29,7 +29,17 @@ export default function Login() {
         localStorage.setItem('userEmail', response.email || '');
         localStorage.setItem('userName', response.fullName || '');
         localStorage.setItem('userRole', response.role || '');
-        navigate('/dashboard');
+        localStorage.setItem('token', response.token || '');
+        if (response.studentId) {
+          localStorage.setItem('studentId', response.studentId.toString());
+        }
+
+        // Redirect based on role
+        if (response.role === 'STUDENT') {
+          navigate('/student/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(response.message || 'Invalid email or password');
       }
