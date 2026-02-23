@@ -1,64 +1,81 @@
-# Hotel Management Portal
+# Hostel Management Portal
 
-A full-stack hotel management application with Spring Boot backend and React (Next.js) frontend.
+A full-stack hostel management application with Node.js/Express backend and React frontend.
 
 ## Project Structure
 
 ```
-hotel-management-portal/
-├── backend/                             # Spring Boot Backend
-│   ├── src/main/java/com/hotelmanagement/
-│   │   ├── controller/                  # REST API controllers
-│   │   ├── service/                     # Business logic
-│   │   ├── repository/                  # Data access layer
-│   │   ├── model/                       # Entity classes
-│   │   ├── dto/                         # Data Transfer Objects
-│   │   ├── config/                      # Configuration classes
-│   │   └── exception/                   # Exception handling
-│   ├── src/main/resources/              # Application configuration
-│   └── pom.xml                          # Maven configuration
+hostel-management-portal/
+├── node-backend/                        # Node.js/Express Backend
+│   ├── src/
+│   │   ├── config/                      # Database configuration
+│   │   ├── models/                      # Sequelize models
+│   │   ├── routes/                      # Express route handlers
+│   │   └── index.js                     # Main server entry
+│   ├── package.json                     # Node.js dependencies
+│   └── .env                             # Environment configuration
 │
-├── frontend/                            # React (Next.js) Frontend
-│   ├── app/                             # Pages and routes
-│   ├── components/                      # Reusable components
-│   ├── services/                        # API services
-│   ├── types/                           # TypeScript types
-│   └── hooks/                           # Custom hooks
+├── backend/                             # (Legacy) Spring Boot Backend
+│   └── ...                              # Kept for reference
+│
+├── frontend/                            # React Frontend
+│   ├── src/
+│   │   ├── components/                  # Reusable components
+│   │   ├── pages/                       # Page components
+│   │   ├── lib/                         # API services
+│   │   └── types/                       # TypeScript types
+│   └── package.json                     # Frontend dependencies
 │
 └── README.md
 ```
 
 ## Tech Stack
 
-### Backend
-- **Framework**: Spring Boot 3.5
-- **Language**: Java 21
-- **Build Tool**: Maven
+### Backend (Node.js)
+- **Runtime**: Node.js 18+
+- **Framework**: Express.js 4.x
+- **ORM**: Sequelize 6.x
+- **Database**: MySQL
 
 ### Frontend
-- **Framework**: Next.js 16 (React)
+- **Framework**: React with Vite
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 
 ## Getting Started
 
 ### Prerequisites
-- Java 21 or higher
 - Node.js 18 or higher
-- Maven 3.8 or higher
+- MySQL server (e.g., XAMPP with MySQL on port 3307)
 
 ### Backend Setup
 
-1. Navigate to backend directory:
+1. Navigate to node-backend directory:
    ```bash
-   cd backend
+   cd node-backend
    ```
 
-2. Run the Spring Boot application:
+2. Install dependencies:
    ```bash
-   ./mvnw spring-boot:run
+   npm install
    ```
-3. Backend will be available at `http://localhost:8080`
+
+3. Configure environment (edit `.env` if needed):
+   ```env
+   PORT=8080
+   DB_HOST=localhost
+   DB_PORT=3307
+   DB_NAME=hostel_management_db
+   DB_USER=root
+   DB_PASSWORD=
+   ```
+
+4. Start the server:
+   ```bash
+   npm run dev
+   ```
+
+5. Backend will be available at `http://localhost:8080`
 
 ### Frontend Setup
 
