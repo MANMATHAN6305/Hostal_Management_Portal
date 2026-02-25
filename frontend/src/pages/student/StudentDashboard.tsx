@@ -28,6 +28,11 @@ interface DashboardData {
     status: string;
     allocationDate: string;
   } | null;
+  warden: {
+    name: string;
+    email: string;
+    phone: string;
+  } | null;
   stats: {
     pendingComplaints: number;
     totalComplaints: number;
@@ -61,7 +66,7 @@ export default function StudentDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-700"></div>
       </div>
     );
   }
@@ -76,25 +81,46 @@ export default function StudentDashboard() {
   }
 
   const quickLinks = [
-    { title: 'View Room Details', icon: '🛏️', href: '/student/room', color: 'bg-blue-500' },
-    { title: 'Raise Complaint', icon: '📢', href: '/student/complaints', color: 'bg-orange-500' },
-    { title: 'Weekly Menu', icon: '🍽️', href: '/student/menu', color: 'bg-green-500' },
+    { title: 'View Room Details', icon: '🛏️', href: '/student/room', color: 'bg-gray-700' },
+    { title: 'Raise Complaint', icon: '📢', href: '/student/complaints', color: 'bg-gray-600' },
+    { title: 'Weekly Menu', icon: '🍽️', href: '/student/menu', color: 'bg-gray-800' },
   ];
 
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 text-white">
         <h1 className="text-2xl font-bold">
           Welcome, {data?.student?.firstName} {data?.student?.lastName}! 👋
         </h1>
-        <p className="text-emerald-100 mt-1">
+        <p className="text-gray-300 mt-1">
           {data?.student?.department} - Year {data?.student?.year}
         </p>
-        <p className="text-emerald-200 text-sm mt-2">
+        <p className="text-gray-400 text-sm mt-2">
           Student ID: {data?.student?.studentId}
         </p>
       </div>
+
+      {/* Warden Info Card */}
+      {data?.warden && (
+        <Card>
+          <CardContent>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span>👨‍💼</span> Assigned Warden
+            </h2>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-2xl">👤</span>
+              </div>
+              <div>
+                <p className="text-lg font-medium text-gray-800">{data.warden.name}</p>
+                <p className="text-sm text-gray-500">{data.warden.email}</p>
+                {data.warden.phone && <p className="text-sm text-gray-500">📞 {data.warden.phone}</p>}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -113,28 +139,28 @@ export default function StudentDashboard() {
         {/* Profile Card */}
         <Card>
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <span>👤</span> Profile Information
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between border-b pb-2">
-                <span className="text-slate-500">Full Name</span>
+                <span className="text-gray-500">Full Name</span>
                 <span className="font-medium">{data?.student?.firstName} {data?.student?.lastName}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-slate-500">Email</span>
+                <span className="text-gray-500">Email</span>
                 <span className="font-medium">{data?.student?.email}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-slate-500">Phone</span>
+                <span className="text-gray-500">Phone</span>
                 <span className="font-medium">{data?.student?.phone || 'Not provided'}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-slate-500">Department</span>
+                <span className="text-gray-500">Department</span>
                 <span className="font-medium">{data?.student?.department}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Year</span>
+                <span className="text-gray-500">Year</span>
                 <span className="font-medium">Year {data?.student?.year}</span>
               </div>
             </div>
@@ -144,29 +170,29 @@ export default function StudentDashboard() {
         {/* Room Details Card */}
         <Card>
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <span>🏠</span> Room Details
             </h2>
             {data?.room ? (
               <div className="space-y-3">
                 <div className="flex justify-between border-b pb-2">
-                  <span className="text-slate-500">Room Number</span>
-                  <span className="font-medium text-emerald-600 text-lg">{data.room.roomNumber}</span>
+                  <span className="text-gray-500">Room Number</span>
+                  <span className="font-medium text-gray-800 text-lg">{data.room.roomNumber}</span>
                 </div>
                 <div className="flex justify-between border-b pb-2">
-                  <span className="text-slate-500">Block</span>
+                  <span className="text-gray-500">Hostel Name</span>
                   <span className="font-medium">{data.room.blockName}</span>
                 </div>
                 <div className="flex justify-between border-b pb-2">
-                  <span className="text-slate-500">Floor</span>
+                  <span className="text-gray-500">Floor</span>
                   <span className="font-medium">Floor {data.room.floorNumber}</span>
                 </div>
                 <div className="flex justify-between border-b pb-2">
-                  <span className="text-slate-500">Room Type</span>
+                  <span className="text-gray-500">Room Type</span>
                   <span className="font-medium">{data.room.roomType}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Status</span>
+                  <span className="text-gray-500">Status</span>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     data.allocation?.status === 'ACTIVE' 
                       ? 'bg-green-100 text-green-700' 
@@ -179,8 +205,8 @@ export default function StudentDashboard() {
             ) : (
               <div className="text-center py-8">
                 <div className="text-4xl mb-2">🏠</div>
-                <p className="text-slate-500">No room allocated yet</p>
-                <p className="text-sm text-slate-400 mt-1">Please contact the hostel office</p>
+                <p className="text-gray-500">No room allocated yet</p>
+                <p className="text-sm text-gray-400 mt-1">Please contact the hostel office</p>
               </div>
             )}
           </CardContent>
@@ -192,22 +218,22 @@ export default function StudentDashboard() {
         <CardContent>
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <span>📋</span> Complaints Summary
               </h2>
-              <p className="text-slate-500 text-sm mt-1">
+              <p className="text-gray-500 text-sm mt-1">
                 {data?.stats?.pendingComplaints || 0} pending out of {data?.stats?.totalComplaints || 0} total complaints
               </p>
             </div>
             <Link 
               to="/student/complaints"
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg transition-colors"
+              className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg transition-colors"
             >
               View All
             </Link>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div> 
   );
 }

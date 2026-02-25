@@ -19,6 +19,37 @@ export const authApi = {
     });
     return response.json();
   },
+
+  // Handle Google OAuth callback
+  handleGoogleCallback: () => {
+    // Parse URL params
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const userId = params.get('userId');
+    const email = params.get('email');
+    const fullName = params.get('fullName');
+    const role = params.get('role');
+    const studentId = params.get('studentId');
+
+    if (token && userId) {
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('token', token);
+      localStorage.setItem('userId', userId);
+      localStorage.setItem('userEmail', email || '');
+      localStorage.setItem('userName', fullName || '');
+      localStorage.setItem('userRole', role || '');
+      if (studentId) {
+        localStorage.setItem('studentId', studentId);
+      }
+      
+      // Clear URL params
+      window.history.replaceState({}, '', window.location.pathname);
+      
+      return { success: true, role };
+    }
+    
+    return { success: false };
+  }
 };
 
 // Rooms API

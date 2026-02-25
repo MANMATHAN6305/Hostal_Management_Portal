@@ -8,7 +8,6 @@ interface MenuItem {
   day: string;
   breakfast: string;
   lunch: string;
-  snacks: string;
   dinner: string;
 }
 
@@ -18,7 +17,6 @@ const emptyMenu: MenuItem[] = days.map(day => ({
   day,
   breakfast: '',
   lunch: '',
-  snacks: '',
   dinner: ''
 }));
 
@@ -51,7 +49,6 @@ export default function AdminMenu() {
           day,
           breakfast: (menuMap.get(day) as MenuItem)?.breakfast || '',
           lunch: (menuMap.get(day) as MenuItem)?.lunch || '',
-          snacks: (menuMap.get(day) as MenuItem)?.snacks || '',
           dinner: (menuMap.get(day) as MenuItem)?.dinner || '',
         }));
         setMenu(mappedMenu);
@@ -156,8 +153,7 @@ export default function AdminMenu() {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-32">Day</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">🌅 Breakfast</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">☀️ Lunch</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">🍵 Snacks</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">🌙 Dinner</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700"> Dinner</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -184,15 +180,6 @@ export default function AdminMenu() {
                         onChange={(e) => handleMenuChange(item.day, 'lunch', e.target.value)}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
                         placeholder="Enter lunch items..."
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <input
-                        type="text"
-                        value={item.snacks}
-                        onChange={(e) => handleMenuChange(item.day, 'snacks', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
-                        placeholder="Enter snacks..."
                       />
                     </td>
                     <td className="px-2 py-2">
@@ -242,17 +229,7 @@ export default function AdminMenu() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">🍵 Snacks</label>
-                  <input
-                    type="text"
-                    value={item.snacks}
-                    onChange={(e) => handleMenuChange(item.day, 'snacks', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
-                    placeholder="Enter snacks..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">🌙 Dinner</label>
+                  <label className="block text-xs text-slate-500 mb-1"> Dinner</label>
                   <input
                     type="text"
                     value={item.dinner}

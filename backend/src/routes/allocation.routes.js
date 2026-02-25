@@ -7,8 +7,8 @@ const Student = require('../models/Student');
 // Helper function to format allocation response
 const formatAllocation = (allocation) => ({
   id: allocation.id,
-  RoomId: allocation.RoomId,
-  StudentId: allocation.StudentId,
+  roomId: allocation.RoomId,
+  studentId: allocation.StudentId,
   academicYear: allocation.academicYear,
   semester: allocation.semester,
   status: allocation.status,

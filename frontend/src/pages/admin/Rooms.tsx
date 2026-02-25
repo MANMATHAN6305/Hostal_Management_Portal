@@ -77,7 +77,7 @@ export default function Rooms() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-700"></div>
       </div>
     );
   }
@@ -86,8 +86,8 @@ export default function Rooms() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Hostel Rooms</h1>
-          <p className="text-slate-600">Manage hostel rooms and their availability</p>
+          <h1 className="text-2xl font-bold text-gray-800">Hostel Rooms</h1>
+          <p className="text-gray-600">Manage hostel rooms and their availability</p>
         </div>
         <Link to="/rooms/add">
           <Button>+ Add Room</Button>
@@ -101,7 +101,7 @@ export default function Rooms() {
             <div className="flex-1 w-full">
               <Input
                 type="text"
-                placeholder="Search by Room Number, Block, Type, or Amenities..."
+                placeholder="Search by Room Number, Hostel Name, Type, or Amenities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -110,7 +110,7 @@ export default function Rooms() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
               >
                 <option value="ALL">All Status</option>
                 <option value="AVAILABLE">Available</option>
@@ -125,7 +125,7 @@ export default function Rooms() {
             </div>
           </div>
           {(searchQuery || statusFilter !== 'ALL') && (
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-gray-500 mt-2">
               Showing {filteredRooms.length} of {rooms.length} rooms
             </p>
           )}
@@ -135,13 +135,13 @@ export default function Rooms() {
       {rooms.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-slate-500">No rooms found. Add your first room to get started.</p>
+            <p className="text-gray-500">No rooms found. Add your first room to get started.</p>
           </CardContent>
         </Card>
       ) : filteredRooms.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-slate-500">No rooms match your search criteria.</p>
+            <p className="text-gray-500">No rooms match your search criteria.</p>
           </CardContent>
         </Card>
       ) : (
@@ -151,28 +151,24 @@ export default function Rooms() {
               <CardContent>
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-800">Room {room.roomNumber}</h3>
-                    <p className="text-sm text-slate-600">{room.blockName} - Floor {room.floorNumber}</p>
+                    <h3 className="text-lg font-semibold text-gray-800">Room {room.roomNumber}</h3>
+                    <p className="text-sm text-gray-600">{room.blockName} - Floor {room.floorNumber}</p>
                   </div>
                   <Badge variant={statusBadgeVariant(room.status)}>{room.status}</Badge>
                 </div>
-                <p className="text-sm text-slate-600 mb-3">{room.description || 'No description'}</p>
+                <p className="text-sm text-gray-600 mb-3">{room.description || 'No description'}</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Type:</span>
-                    <span className="font-medium text-slate-800">{room.roomType}</span>
+                    <span className="text-gray-500">Type:</span>
+                    <span className="font-medium text-gray-800">{room.roomType}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Fee/Semester:</span>
-                    <span className="font-medium text-slate-800">₹{room.pricePerNight}</span>
+                    <span className="text-gray-500">Fee/Semester:</span>
+                    <span className="font-medium text-gray-800">₹{room.pricePerNight}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Capacity:</span>
-                    <span className="font-medium text-slate-800">{room.capacity} students</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Amenities:</span>
-                    <span className="font-medium text-slate-800 text-right">{room.amenities || 'N/A'}</span>
+                    <span className="text-gray-500">Amenities:</span>
+                    <span className="font-medium text-gray-800 text-right">{room.amenities || 'N/A'}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4 pt-4 border-t">

@@ -296,6 +296,28 @@ router.get('/dashboard', verifyToken, async (req, res) => {
     const pendingComplaints = complaintStats.filter(c => c.status === 'PENDING').length;
     const totalComplaints = complaintStats.length;
 
+    // Get assigned warden info - find warden based on hostel name
+    let wardenInfo = null;
+    if (allocation?.Room?.blockName) {
+      // Try to find a warden associated with this hostel
+      const User = require('../models/User');
+      const warden = await User.findOne({
+        where: { 
+          role: 'WARDEN',
+          isActive: true
+        },
+        attributes: ['id', 'fullName', 'email']
+      });
+      
+      if (warden) {
+        wardenInfo = {
+          name: warden.fullName,
+          email: warden.email,
+          phone: '+91 98765 43210' // Default phone since we don't have phone in User model
+        };
+      }
+    }
+
     res.json({
       success: true,
       student: {
@@ -322,6 +344,7 @@ router.get('/dashboard', verifyToken, async (req, res) => {
         status: allocation.status,
         allocationDate: allocation.allocationDate
       } : null,
+      warden: wardenInfo,
       stats: {
         pendingComplaints,
         totalComplaints

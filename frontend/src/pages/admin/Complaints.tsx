@@ -43,6 +43,7 @@ export default function AdminComplaints() {
   const [replyText, setReplyText] = useState('');
   const [newStatus, setNewStatus] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState<number | null>(null);
   const [filter, setFilter] = useState('ALL');
 
   useEffect(() => {
@@ -90,6 +91,28 @@ export default function AdminComplaints() {
       setError('Failed to update complaint');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this complaint?')) return;
+
+    setDeleting(id);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await adminApi.deleteComplaint(id);
+      if (response.success) {
+        setSuccess('Complaint deleted successfully!');
+        fetchComplaints();
+      } else {
+        setError(response.message || 'Failed to delete complaint');
+      }
+    } catch (err) {
+      setError('Failed to delete complaint');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -265,56 +288,88 @@ export default function AdminComplaints() {
             </CardContent>
           </Card>
         ) : (
-          filteredComplaints.map((complaint) => (
-            <Card key={complaint.id}>
-              <CardContent>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="text-3xl">{getCategoryIcon(complaint.category)}</div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(complaint.status)}`}>
-                          {complaint.status.replace('_', ' ')}
-                        </span>
-                        <span className="text-slate-400 text-sm">
-                          {new Date(complaint.createdAt).toLocaleDateString()}
-                        </span>
-                        <span className="text-xs bg-slate-100 px-2 py-0.5 rounded">
-                          {complaint.category}
-                        </span>
-                      </div>
-                      
-                      <div className="mb-2">
-                        <p className="text-sm text-slate-500">
-                          <strong>{complaint.student?.name}</strong> ({complaint.student?.studentId}) - {complaint.student?.department}
-                        </p>
-                      </div>
-                      
-                      <p className="text-slate-700">{complaint.message}</p>
-                      
-                      {complaint.adminReply && (
-                        <div className="mt-3 bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg">
-                          <p className="text-sm font-medium text-blue-700 mb-1">Your Reply:</p>
-                          <p className="text-blue-800 text-sm">{complaint.adminReply}</p>
-                        </div>
-                      )}
-                    </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {filteredComplaints.map((complaint) => (
+              <div 
+                key={complaint.id}
+                className={`rounded-xl border-2 overflow-hidden transition-all hover:shadow-lg ${
+                  complaint.status === 'COMPLETED' 
+                    ? 'border-green-200 bg-green-50/30' 
+                    : complaint.status === 'IN_PROGRESS' 
+                    ? 'border-blue-200 bg-blue-50/30' 
+                    : 'border-yellow-200 bg-yellow-50/30'
+                }`}
+              >
+                {/* Header with category icon and status */}
+                <div className={`px-4 py-2 flex items-center justify-between ${
+                  complaint.status === 'COMPLETED' 
+                    ? 'bg-green-100' 
+                    : complaint.status === 'IN_PROGRESS' 
+                    ? 'bg-blue-100' 
+                    : 'bg-yellow-100'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{getCategoryIcon(complaint.category)}</span>
+                    <span className="text-xs font-medium text-slate-600">{complaint.category}</span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedComplaint(complaint);
-                      setReplyText(complaint.adminReply || '');
-                      setNewStatus(complaint.status);
-                    }}
-                  >
-                    Respond
-                  </Button>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusBadge(complaint.status)}`}>
+                    {complaint.status.replace('_', ' ')}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-          ))
+                
+                {/* Content */}
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-slate-500">
+                      {new Date(complaint.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-xs font-medium text-slate-700">
+                      {complaint.student?.name}
+                    </span>
+                    <span className="text-xs text-slate-400">({complaint.student?.studentId})</span>
+                  </div>
+                  
+                  <p className="text-slate-700 text-sm mb-3">{complaint.message}</p>
+                  
+                  {complaint.adminReply && (
+                    <div className="bg-white border border-blue-200 rounded-lg p-3 mb-3">
+                      <p className="text-xs font-semibold text-blue-600 mb-1">✓ Your Reply:</p>
+                      <p className="text-slate-600 text-sm">{complaint.adminReply}</p>
+                    </div>
+                  )}
+                  
+                  {/* Action Button */}
+                  <div className="flex justify-end">
+                    {complaint.status === 'COMPLETED' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 border-red-300 hover:bg-red-50"
+                        onClick={() => handleDelete(complaint.id)}
+                        disabled={deleting === complaint.id}
+                      >
+                        {deleting === complaint.id ? 'Deleting...' : '🗑️ Delete'}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                        onClick={() => {
+                          setSelectedComplaint(complaint);
+                          setReplyText(complaint.adminReply || '');
+                          setNewStatus(complaint.status);
+                        }}
+                      >
+                        ✍️ Respond
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -5,6 +5,22 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { roomsApi } from '@/lib/api';
 
+// Gender-based hostel names
+const maleHostels = [
+  { value: 'Emerald', label: 'Emerald' },
+  { value: 'Pearl', label: 'Pearl' },
+  { value: 'Ruby', label: 'Ruby' },
+  { value: 'Diamond', label: 'Diamond' },
+  { value: 'Sapphire', label: 'Sapphire' },
+  { value: 'Coral (AC)', label: 'Coral (AC Type)' },
+];
+
+const femaleHostels = [
+  { value: 'Gangai', label: 'Gangai' },
+  { value: 'Yamunai', label: 'Yamunai' },
+  { value: 'Sindhu', label: 'Sindhu' },
+];
+
 export default function AddRoom() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -14,14 +30,37 @@ export default function AddRoom() {
     pricePerNight: '',
     status: 'AVAILABLE',
     description: '',
-    capacity: '',
     floorNumber: '',
     blockName: '',
     amenities: '',
+    gender: 'MALE',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => {
+      // Reset hostel name when gender changes
+      if (name === 'gender') {
+        return { ...prev, [name]: value, blockName: '' };
+      }
+      return { ...prev, [name]: value };
+    });
+  };
+
+  // Get hostel options based on selected gender
+  const getHostelOptions = () => {
+    return formData.gender === 'MALE' ? maleHostels : femaleHostels;
+  };
+
+  // Auto-calculate capacity based on room type
+  const getCapacityFromRoomType = (roomType: string) => {
+    switch (roomType) {
+      case 'SINGLE': return 1;
+      case 'DOUBLE': return 2;
+      case 'TRIPLE': return 3;
+      case 'DORMITORY': return 4;
+      default: return 1;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,7 +71,7 @@ export default function AddRoom() {
       await roomsApi.create({
         ...formData,
         pricePerNight: parseFloat(formData.pricePerNight),
-        capacity: parseInt(formData.capacity),
+        capacity: getCapacityFromRoomType(formData.roomType),
         floorNumber: parseInt(formData.floorNumber),
       });
       alert('Room added successfully!');
@@ -47,7 +86,7 @@ export default function AddRoom() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <Link to="/rooms" className="text-emerald-600 hover:text-emerald-500 flex items-center gap-2">
+        <Link to="/rooms" className="text-gray-700 hover:text-gray-900 flex items-center gap-2">
           ← Back to Rooms
         </Link>
       </div>
@@ -60,7 +99,7 @@ export default function AddRoom() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Room Number *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Room Number *</label>
                 <Input
                   type="text"
                   name="roomNumber"
@@ -72,24 +111,37 @@ export default function AddRoom() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Block Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
                 <select
-                  name="blockName"
-                  value={formData.blockName}
+                  name="gender"
+                  value={formData.gender}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
                   required
                 >
-                  <option value="">Select Block</option>
-                  <option value="Boys Hostel A">Boys Hostel A</option>
-                  <option value="Boys Hostel B">Boys Hostel B</option>
-                  <option value="Girls Hostel A">Girls Hostel A</option>
-                  <option value="Girls Hostel B">Girls Hostel B</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Floor Number *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Hostel Name *</label>
+                <select
+                  name="blockName"
+                  value={formData.blockName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
+                  required
+                >
+                  <option value="">Select Hostel Name</option>
+                  {getHostelOptions().map(hostel => (
+                    <option key={hostel.value} value={hostel.value}>{hostel.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Floor Number *</label>
                 <Input
                   type="number"
                   name="floorNumber"
@@ -102,12 +154,12 @@ export default function AddRoom() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Room Type *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Room Type *</label>
                 <select
                   name="roomType"
                   value={formData.roomType}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
                   required
                 >
                   <option value="SINGLE">Single (1 bed)</option>
@@ -118,7 +170,7 @@ export default function AddRoom() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Fee per Semester (₹) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Fee per Semester (₹) *</label>
                 <Input
                   type="number"
                   name="pricePerNight"
@@ -132,25 +184,12 @@ export default function AddRoom() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Capacity *</label>
-                <Input
-                  type="number"
-                  name="capacity"
-                  value={formData.capacity}
-                  onChange={handleChange}
-                  placeholder="2"
-                  min="1"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Status *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
                   required
                 >
                   <option value="AVAILABLE">Available</option>
@@ -160,7 +199,7 @@ export default function AddRoom() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Amenities</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
                 <Input
                   type="text"
                   name="amenities"
@@ -172,13 +211,13 @@ export default function AddRoom() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
                 placeholder="Room description..."
               />
             </div>

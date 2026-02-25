@@ -124,7 +124,7 @@ export default function MyRoom() {
               <span>🛏️</span> Room Information
             </h3>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-slate-50 p-4 rounded-lg">
                   <p className="text-slate-500 text-sm">Room Type</p>
                   <p className="font-semibold text-slate-800">{data.room.roomType}</p>
@@ -160,7 +160,7 @@ export default function MyRoom() {
               <span>📅</span> Allocation Details
             </h3>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-emerald-50 p-4 rounded-lg">
                   <p className="text-emerald-600 text-sm">Academic Year</p>
                   <p className="font-semibold text-emerald-800">{data.allocation?.academicYear || 'N/A'}</p>

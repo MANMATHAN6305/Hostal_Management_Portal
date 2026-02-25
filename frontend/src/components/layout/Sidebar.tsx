@@ -15,7 +15,11 @@ const quickActions = [
   { href: '/students/add', label: 'Add Student', icon: '👤' },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -36,23 +40,33 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-slate-800 text-white min-h-screen flex flex-col">
+    <aside className="w-64 bg-gray-900 text-white h-screen flex flex-col overflow-y-auto">
       <div className="p-4">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold text-center">🏫 Hostel Portal</h1>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-xl font-bold">🏫 Hostel Portal</h1>
+          {/* Close button for mobile */}
+          <button 
+            onClick={onClose}
+            className="lg:hidden p-1 rounded hover:bg-gray-700"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         
         <nav>
-          <p className="text-xs text-slate-400 uppercase tracking-wider mb-2 px-4">Main Menu</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 px-4">Main Menu</p>
           <ul className="space-y-1">
             {navItems.map((item) => (
               <li key={item.href}>
                 <Link
                   to={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  onClick={onClose}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg ${
                     isActive(item.href)
-                      ? 'bg-emerald-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-300'
                   }`}
                 >
                   <span>{item.icon}</span>
@@ -64,13 +78,14 @@ export function Sidebar() {
         </nav>
 
         <div className="mt-8">
-          <p className="text-xs text-slate-400 uppercase tracking-wider mb-2 px-4">Quick Actions</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 px-4">Quick Actions</p>
           <ul className="space-y-1">
             {quickActions.map((item) => (
               <li key={item.href}>
                 <Link
                   to={item.href}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors text-sm"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-300 text-sm"
                 >
                   <span>{item.icon}</span>
                   <span>{item.label}</span>
@@ -81,10 +96,10 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="mt-auto p-4 border-t border-slate-700">
+      <div className="mt-auto p-4 border-t border-gray-700">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-red-600 hover:text-white transition-colors w-full"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 w-full"
         >
           <span>🚪</span>
           <span>Logout</span>

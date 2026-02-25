@@ -7,7 +7,6 @@ interface MenuItem {
   day: string;
   breakfast: string;
   lunch: string;
-  snacks: string;
   dinner: string;
 }
 
@@ -97,7 +96,7 @@ export default function Menu() {
       {todayMenu && (
         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-6 text-white">
           <h2 className="text-lg font-semibold mb-4">🍽️ Today's Menu ({getCurrentDay()})</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white/20 rounded-lg p-3">
               <p className="text-emerald-100 text-sm">Breakfast</p>
               <p className="font-medium">{todayMenu.breakfast || 'Not available'}</p>
@@ -105,10 +104,6 @@ export default function Menu() {
             <div className="bg-white/20 rounded-lg p-3">
               <p className="text-emerald-100 text-sm">Lunch</p>
               <p className="font-medium">{todayMenu.lunch || 'Not available'}</p>
-            </div>
-            <div className="bg-white/20 rounded-lg p-3">
-              <p className="text-emerald-100 text-sm">Snacks</p>
-              <p className="font-medium">{todayMenu.snacks || 'Not available'}</p>
             </div>
             <div className="bg-white/20 rounded-lg p-3">
               <p className="text-emerald-100 text-sm">Dinner</p>
@@ -142,8 +137,7 @@ export default function Menu() {
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Day</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">🌅 Breakfast</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">☀️ Lunch</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">🍵 Snacks</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">🌙 Dinner</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700"> Dinner</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -165,7 +159,6 @@ export default function Menu() {
                         </td>
                         <td className="px-4 py-3 text-slate-600">{item.breakfast || '-'}</td>
                         <td className="px-4 py-3 text-slate-600">{item.lunch || '-'}</td>
-                        <td className="px-4 py-3 text-slate-600">{item.snacks || '-'}</td>
                         <td className="px-4 py-3 text-slate-600">{item.dinner || '-'}</td>
                       </tr>
                     ))}
@@ -199,11 +192,7 @@ export default function Menu() {
                       <p className="text-sm font-medium text-slate-700">{item.lunch || '-'}</p>
                     </div>
                     <div className="bg-slate-50 p-3 rounded-lg">
-                      <p className="text-xs text-slate-500">🍵 Snacks</p>
-                      <p className="text-sm font-medium text-slate-700">{item.snacks || '-'}</p>
-                    </div>
-                    <div className="bg-slate-50 p-3 rounded-lg">
-                      <p className="text-xs text-slate-500">🌙 Dinner</p>
+                      <p className="text-xs text-slate-500"> Dinner</p>
                       <p className="text-sm font-medium text-slate-700">{item.dinner || '-'}</p>
                     </div>
                   </div>

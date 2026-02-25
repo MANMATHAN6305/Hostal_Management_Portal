@@ -23,10 +23,6 @@ const Menu = sequelize.define('Menu', {
     type: DataTypes.STRING(255),
     allowNull: true
   },
-  snacks: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
   dinner: {
     type: DataTypes.STRING(255),
     allowNull: true

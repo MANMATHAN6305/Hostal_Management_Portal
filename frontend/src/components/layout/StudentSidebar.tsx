@@ -7,7 +7,11 @@ const navItems = [
   { href: '/student/menu', label: 'Weekly Menu', icon: '🍽️' },
 ];
 
-export function StudentSidebar() {
+interface StudentSidebarProps {
+  onClose?: () => void;
+}
+
+export function StudentSidebar({ onClose }: StudentSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -27,24 +31,36 @@ export function StudentSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-emerald-800 text-white min-h-screen flex flex-col">
+    <aside className="w-64 bg-gray-800 text-white h-screen flex flex-col overflow-y-auto">
       <div className="p-4">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold text-center">🎓 Student Portal</h1>
-          <p className="text-xs text-emerald-200 text-center mt-1">Hostel Management</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">🎓 Student Portal</h1>
+            <p className="text-xs text-gray-400 mt-1">Hostel Management</p>
+          </div>
+          {/* Close button for mobile */}
+          <button 
+            onClick={onClose}
+            className="lg:hidden p-1 rounded hover:bg-gray-700"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         
         <nav>
-          <p className="text-xs text-emerald-300 uppercase tracking-wider mb-2 px-4">Navigation</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 px-4">Navigation</p>
           <ul className="space-y-1">
             {navItems.map((item) => (
               <li key={item.href}>
                 <Link
                   to={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  onClick={onClose}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg ${
                     isActive(item.href)
-                      ? 'bg-emerald-600 text-white'
-                      : 'text-emerald-100 hover:bg-emerald-700 hover:text-white'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-300'
                   }`}
                 >
                   <span>{item.icon}</span>
@@ -56,14 +72,14 @@ export function StudentSidebar() {
         </nav>
       </div>
 
-      <div className="mt-auto p-4 border-t border-emerald-700">
+      <div className="mt-auto p-4 border-t border-gray-700">
         <div className="px-4 py-2 mb-2">
-          <p className="text-sm text-emerald-200">Logged in as:</p>
+          <p className="text-sm text-gray-400">Logged in as:</p>
           <p className="text-white font-medium truncate">{localStorage.getItem('userName') || 'Student'}</p>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-red-600 hover:text-white transition-colors w-full"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 w-full"
         >
           <span>🚪</span>
           <span>Logout</span>
