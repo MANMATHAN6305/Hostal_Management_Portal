@@ -41,13 +41,23 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Admin only middleware (ADMIN, WARDEN, STAFF can access)
+const authorizeRoles = (...roles) => (req, res, next) => {
+  if (!req.user || !roles.includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied for this role.'
+    });
+  }
+  next();
+};
+
+// Admin ops middleware (ADMIN, WARDEN, STAFF can access)
 const isAdmin = (req, res, next) => {
   const allowedRoles = ['ADMIN', 'WARDEN', 'STAFF'];
   if (!allowedRoles.includes(req.user.role)) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Access denied. Admin privileges required.' 
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Admin privileges required.'
     });
   }
   next();
@@ -64,4 +74,4 @@ const isStudent = (req, res, next) => {
   next();
 };
 
-module.exports = { generateToken, verifyToken, isAdmin, isStudent, JWT_SECRET };
+module.exports = { generateToken, verifyToken, authorizeRoles, isAdmin, isStudent, JWT_SECRET };

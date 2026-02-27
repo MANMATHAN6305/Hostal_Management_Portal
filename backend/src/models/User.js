@@ -18,11 +18,24 @@ const User = sequelize.define('User', {
   },
   password: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: true
   },
   role: {
-    type: DataTypes.ENUM('ADMIN', 'WARDEN', 'STAFF', 'STUDENT','Select Role'),
-    defaultValue: 'Select Role'
+    type: DataTypes.ENUM('ADMIN', 'WARDEN', 'STAFF', 'STUDENT', 'Select Role'),
+    defaultValue: 'STUDENT'
+  },
+  staffRole: {
+    type: DataTypes.ENUM('ELECTRICIAN', 'CLEANER', 'CARETAKER'),
+    allowNull: true
+  },
+  phone: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
+  googleId: {
+    type: DataTypes.STRING(100),
+    unique: true,
+    allowNull: true
   },
   isActive: {
     type: DataTypes.BOOLEAN,

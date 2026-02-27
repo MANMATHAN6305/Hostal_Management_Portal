@@ -10,6 +10,7 @@ export default function Register() {
     password: '',
     confirmPassword: '',
     role: 'STUDENT',
+    staffRole: 'ELECTRICIAN',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,7 @@ export default function Register() {
         email: formData.email,
         password: formData.password,
         role: formData.role,
+        staffRole: formData.role === 'STAFF' ? formData.staffRole : undefined,
       });
 
       if (response.success) {
@@ -44,12 +46,10 @@ export default function Register() {
         localStorage.setItem('userName', response.fullName || '');
         localStorage.setItem('userRole', response.role || '');
         
-        // Redirect based on role
-        if (response.role === 'STUDENT') {
-          navigate('/student/dashboard');
-        } else {
-          navigate('/dashboard');
-        }
+        if (response.role === 'STUDENT') navigate('/student/dashboard');
+        else if (response.role === 'WARDEN') navigate('/warden/dashboard');
+        else if (response.role === 'STAFF') navigate('/staff/dashboard');
+        else navigate('/dashboard');
       } else {
         setError(response.message || 'Registration failed');
       }
@@ -129,6 +129,25 @@ export default function Register() {
               <option value="ADMIN">Admin</option>
             </select>
           </div>
+
+          {formData.role === 'STAFF' && (
+            <div>
+              <label htmlFor="staffRole" className="block text-sm font-medium text-gray-700 mb-2">
+                Staff Type
+              </label>
+              <select
+                id="staffRole"
+                name="staffRole"
+                value={formData.staffRole}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors"
+              >
+                <option value="ELECTRICIAN">Electrician</option>
+                <option value="CLEANER">Room Cleaner</option>
+                <option value="CARETAKER">Caretaker</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">

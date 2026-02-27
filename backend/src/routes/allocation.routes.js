@@ -62,18 +62,59 @@ router.get('/:id', async (req, res) => {
 // POST /api/allocations - Create new allocation
 router.post('/', async (req, res) => {
   try {
+    const { roomId, studentId, academicYear, semester, allocationDate, endDate, specialRequests } = req.body;
+
+    // Step 1: Check if room exists and is available
+    const room = await Room.findByPk(roomId);
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    // Step 2: Verify room availability (check if occupied < capacity)
+    if (room.status === 'MAINTENANCE') {
+      return res.status(400).json({ message: 'Room is under maintenance and cannot be allocated' });
+    }
+
+    if (room.occupied >= room.capacity) {
+      return res.status(400).json({ message: 'Room is fully occupied. No beds available.' });
+    }
+
+    // Step 3: Check if student is already allocated to a room in the same academic year/semester
+    const existingAllocation = await Allocation.findOne({
+      where: {
+        StudentId: studentId,
+        academicYear: academicYear,
+        semester: semester,
+        status: 'ACTIVE'
+      }
+    });
+
+    if (existingAllocation) {
+      return res.status(400).json({ message: 'Student already has an active room allocation for this academic year/semester' });
+    }
+
+    // Step 4: Create the allocation
     const allocationData = {
-      RoomId: req.body.roomId,
-      StudentId: req.body.studentId,
-      academicYear: req.body.academicYear,
-      semester: req.body.semester,
-      status: req.body.status || 'ACTIVE',
-      allocationDate: req.body.allocationDate,
-      endDate: req.body.endDate,
-      specialRequests: req.body.specialRequests
+      RoomId: roomId,
+      StudentId: studentId,
+      academicYear: academicYear,
+      semester: semester,
+      status: 'ACTIVE',
+      allocationDate: allocationDate,
+      endDate: endDate,
+      specialRequests: specialRequests
     };
     
     const allocation = await Allocation.create(allocationData);
+
+    // Step 5: Update room occupied count and status
+    const newOccupied = room.occupied + 1;
+    const newStatus = newOccupied >= room.capacity ? 'OCCUPIED' : 'AVAILABLE';
+    
+    await room.update({
+      occupied: newOccupied,
+      status: newStatus
+    });
     
     // Fetch the allocation with related data
     const createdAllocation = await Allocation.findByPk(allocation.id, {
@@ -97,6 +138,70 @@ router.put('/:id', async (req, res) => {
     
     if (!allocation) {
       return res.status(404).json({ message: 'Allocation not found' });
+    }
+
+    const oldRoomId = allocation.RoomId;
+    const oldStatus = allocation.status;
+    const newRoomId = req.body.roomId;
+    const newStatus = req.body.status;
+
+    // Handle room change
+    if (newRoomId && newRoomId !== oldRoomId) {
+      // Check if new room is available
+      const newRoom = await Room.findByPk(newRoomId);
+      if (!newRoom) {
+        return res.status(404).json({ message: 'New room not found' });
+      }
+      if (newRoom.status === 'MAINTENANCE') {
+        return res.status(400).json({ message: 'New room is under maintenance' });
+      }
+      if (newRoom.occupied >= newRoom.capacity) {
+        return res.status(400).json({ message: 'New room is fully occupied' });
+      }
+
+      // Release old room (if allocation was active)
+      if (oldStatus === 'ACTIVE') {
+        const oldRoom = await Room.findByPk(oldRoomId);
+        if (oldRoom) {
+          const oldOccupied = Math.max(0, oldRoom.occupied - 1);
+          await oldRoom.update({
+            occupied: oldOccupied,
+            status: oldOccupied < oldRoom.capacity ? 'AVAILABLE' : 'OCCUPIED'
+          });
+        }
+      }
+
+      // Occupy new room (if new status is active)
+      if (newStatus === 'ACTIVE') {
+        const newOccupied = newRoom.occupied + 1;
+        await newRoom.update({
+          occupied: newOccupied,
+          status: newOccupied >= newRoom.capacity ? 'OCCUPIED' : 'AVAILABLE'
+        });
+      }
+    } else if (newStatus !== oldStatus) {
+      // Status change without room change
+      const room = await Room.findByPk(oldRoomId);
+      if (room) {
+        if (oldStatus === 'ACTIVE' && newStatus !== 'ACTIVE') {
+          // Releasing room (ACTIVE -> VACATED/PENDING)
+          const newOccupied = Math.max(0, room.occupied - 1);
+          await room.update({
+            occupied: newOccupied,
+            status: newOccupied < room.capacity ? 'AVAILABLE' : 'OCCUPIED'
+          });
+        } else if (oldStatus !== 'ACTIVE' && newStatus === 'ACTIVE') {
+          // Occupying room (VACATED/PENDING -> ACTIVE)
+          if (room.occupied >= room.capacity) {
+            return res.status(400).json({ message: 'Room is fully occupied. Cannot reactivate allocation.' });
+          }
+          const newOccupied = room.occupied + 1;
+          await room.update({
+            occupied: newOccupied,
+            status: newOccupied >= room.capacity ? 'OCCUPIED' : 'AVAILABLE'
+          });
+        }
+      }
     }
     
     await allocation.update({
@@ -133,6 +238,19 @@ router.delete('/:id', async (req, res) => {
     if (!allocation) {
       return res.status(404).json({ message: 'Allocation not found' });
     }
+
+    // If allocation was active, update room occupancy
+    if (allocation.status === 'ACTIVE') {
+      const room = await Room.findByPk(allocation.RoomId);
+      if (room) {
+        const newOccupied = Math.max(0, room.occupied - 1);
+        const newStatus = newOccupied < room.capacity ? 'AVAILABLE' : 'OCCUPIED';
+        await room.update({
+          occupied: newOccupied,
+          status: newStatus
+        });
+      }
+    }
     
     await allocation.destroy();
     res.status(204).send();
@@ -141,7 +259,5 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error deleting allocation' });
   }
 });
-
-module.exports = router;
 
 module.exports = router;

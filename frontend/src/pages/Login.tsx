@@ -38,12 +38,10 @@ export default function Login() {
         localStorage.setItem('studentId', studentId);
       }
 
-      // Redirect based on role
-      if (role === 'STUDENT') {
-        navigate('/student/dashboard', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+      if (role === 'STUDENT') navigate('/student/dashboard', { replace: true });
+      else if (role === 'WARDEN') navigate('/warden/dashboard', { replace: true });
+      else if (role === 'STAFF') navigate('/staff/dashboard', { replace: true });
+      else navigate('/dashboard', { replace: true });
     }
   }, [searchParams, navigate]);
 
@@ -70,12 +68,10 @@ export default function Login() {
           localStorage.setItem('studentId', response.studentId.toString());
         }
 
-        // Redirect based on role
-        if (response.role === 'STUDENT') {
-          navigate('/student/dashboard');
-        } else {
-          navigate('/dashboard');
-        }
+        if (response.role === 'STUDENT') navigate('/student/dashboard');
+        else if (response.role === 'WARDEN') navigate('/warden/dashboard');
+        else if (response.role === 'STAFF') navigate('/staff/dashboard');
+        else navigate('/dashboard');
       } else {
         setError(response.message || 'Invalid email or password');
       }

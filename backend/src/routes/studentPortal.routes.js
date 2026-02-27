@@ -6,19 +6,43 @@ const Room = require('../models/Room');
 const Allocation = require('../models/Allocation');
 const Complaint = require('../models/Complaint');
 const Menu = require('../models/Menu');
+const User = require('../models/User');
 const { verifyToken, isStudent } = require('../middleware/auth');
+
+async function getStudentFromTokenUser(tokenUser) {
+  return Student.findOne({ where: { email: tokenUser.email } });
+}
+
+async function getUserFromTokenUser(tokenUser) {
+  return User.findByPk(tokenUser.id, { attributes: ['id', 'fullName', 'email', 'role'] });
+}
 
 // GET /api/student/me - Get student profile
 router.get('/me', verifyToken, async (req, res) => {
   try {
-    const student = await Student.findOne({ 
-      where: { email: req.user.email }
-    });
+    const student = await getStudentFromTokenUser(req.user);
     
     if (!student) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Student profile not found' 
+      const user = await getUserFromTokenUser(req.user);
+      const nameParts = (user?.fullName || req.user.fullName || '').trim().split(/\s+/);
+      return res.json({
+        success: true,
+        profileCompleted: false,
+        student: {
+          id: null,
+          studentId: null,
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || '',
+          email: user?.email || req.user.email,
+          phone: null,
+          department: null,
+          year: null,
+          gender: null,
+          bloodGroup: null,
+          guardianName: null,
+          guardianPhone: null,
+          address: null
+        }
       });
     }
 
@@ -52,14 +76,15 @@ router.get('/me', verifyToken, async (req, res) => {
 // GET /api/student/room - Get room details for student
 router.get('/room', verifyToken, async (req, res) => {
   try {
-    const student = await Student.findOne({ 
-      where: { email: req.user.email }
-    });
+    const student = await getStudentFromTokenUser(req.user);
     
     if (!student) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Student not found' 
+      return res.json({ 
+        success: true,
+        allocated: false,
+        message: 'No profile yet. Submit Apply Hostel form first.',
+        room: null,
+        allocation: null
       });
     }
 
@@ -182,14 +207,12 @@ router.post('/complaint', verifyToken, async (req, res) => {
       });
     }
 
-    const student = await Student.findOne({ 
-      where: { email: req.user.email }
-    });
+    const student = await getStudentFromTokenUser(req.user);
     
     if (!student) {
-      return res.status(404).json({ 
+      return res.status(400).json({ 
         success: false, 
-        message: 'Student not found' 
+        message: 'Complete Apply Hostel form before raising complaints.' 
       });
     }
 
@@ -223,14 +246,12 @@ router.post('/complaint', verifyToken, async (req, res) => {
 // GET /api/student/complaints - Get student's complaints
 router.get('/complaints', verifyToken, async (req, res) => {
   try {
-    const student = await Student.findOne({ 
-      where: { email: req.user.email }
-    });
+    const student = await getStudentFromTokenUser(req.user);
     
     if (!student) {
-      return res.status(404).json({ 
+      return res.status(400).json({ 
         success: false, 
-        message: 'Student not found' 
+        message: 'Complete Apply Hostel form first.' 
       });
     }
 
@@ -263,14 +284,34 @@ router.get('/complaints', verifyToken, async (req, res) => {
 // GET /api/student/dashboard - Get all dashboard data at once
 router.get('/dashboard', verifyToken, async (req, res) => {
   try {
-    const student = await Student.findOne({ 
-      where: { email: req.user.email }
-    });
+    const student = await getStudentFromTokenUser(req.user);
     
     if (!student) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Student profile not found. Please contact admin.' 
+      const user = await getUserFromTokenUser(req.user);
+      const nameParts = (user?.fullName || req.user.fullName || '').trim().split(/\s+/);
+
+      return res.json({
+        success: true,
+        profileCompleted: false,
+        student: {
+          id: null,
+          studentId: null,
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || '',
+          email: user?.email || req.user.email,
+          phone: null,
+          department: null,
+          year: null,
+          gender: null
+        },
+        room: null,
+        allocation: null,
+        warden: null,
+        stats: {
+          pendingComplaints: 0,
+          totalComplaints: 0
+        },
+        message: 'Complete Apply Hostel form to create your student profile.'
       });
     }
 
@@ -300,7 +341,6 @@ router.get('/dashboard', verifyToken, async (req, res) => {
     let wardenInfo = null;
     if (allocation?.Room?.blockName) {
       // Try to find a warden associated with this hostel
-      const User = require('../models/User');
       const warden = await User.findOne({
         where: { 
           role: 'WARDEN',

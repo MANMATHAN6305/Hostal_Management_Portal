@@ -1,312 +1,121 @@
+import axios from 'axios';
+
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// Auth API
+export const api = axios.create({
+  baseURL: API_BASE_URL
+});
+
+api.interceptors.request.use((config: any) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+const unwrap = async (promise: Promise<any>): Promise<any> => (await promise).data;
+
 export const authApi = {
-  login: async (email: string, password: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    return response.json();
+  login: (email: string, password: string) => unwrap(api.post('/auth/login', { email, password })),
+  register: (data: { fullName: string; email: string; password: string; role?: string; staffRole?: string }) =>
+    unwrap(api.post('/auth/register', data))
+};
+
+export const roomsApi = {
+  getAll: () => unwrap(api.get('/rooms')),
+  getById: (id: number) => unwrap(api.get(`/rooms/${id}`)),
+  create: (data: unknown) => unwrap(api.post('/rooms', data)),
+  update: (id: number, data: unknown) => unwrap(api.put(`/rooms/${id}`, data)),
+  delete: async (id: number) => {
+    await api.delete(`/rooms/${id}`);
+    return true;
   },
+  getAvailable: () => unwrap(api.get('/rooms/available'))
+};
 
-  register: async (data: { fullName: string; email: string; password: string; role?: string }) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return response.json();
-  },
-
-  // Handle Google OAuth callback
-  handleGoogleCallback: () => {
-    // Parse URL params
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const userId = params.get('userId');
-    const email = params.get('email');
-    const fullName = params.get('fullName');
-    const role = params.get('role');
-    const studentId = params.get('studentId');
-
-    if (token && userId) {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', userId);
-      localStorage.setItem('userEmail', email || '');
-      localStorage.setItem('userName', fullName || '');
-      localStorage.setItem('userRole', role || '');
-      if (studentId) {
-        localStorage.setItem('studentId', studentId);
-      }
-      
-      // Clear URL params
-      window.history.replaceState({}, '', window.location.pathname);
-      
-      return { success: true, role };
-    }
-    
-    return { success: false };
+export const studentsApi = {
+  getAll: () => unwrap(api.get('/students')),
+  getById: (id: number) => unwrap(api.get(`/students/${id}`)),
+  create: (data: unknown) => unwrap(api.post('/students', data)),
+  update: (id: number, data: unknown) => unwrap(api.put(`/students/${id}`, data)),
+  delete: async (id: number) => {
+    await api.delete(`/students/${id}`);
+    return true;
   }
 };
 
-// Rooms API
-export const roomsApi = {
-  getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/rooms`);
-    return response.json();
-  },
-
-  getById: async (id: number) => {
-    const response = await fetch(`${API_BASE_URL}/rooms/${id}`);
-    return response.json();
-  },
-
-  create: async (data: any) => {
-    const response = await fetch(`${API_BASE_URL}/rooms`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.message || 'Failed to create room');
-    }
-    return result;
-  },
-
-  update: async (id: number, data: any) => {
-    const response = await fetch(`${API_BASE_URL}/rooms/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.message || 'Failed to update room');
-    }
-    return result;
-  },
-
-  delete: async (id: number) => {
-    const response = await fetch(`${API_BASE_URL}/rooms/${id}`, {
-      method: 'DELETE',
-    });
-    return response.ok;
-  },
-
-  getAvailable: async () => {
-    const response = await fetch(`${API_BASE_URL}/rooms/available`);
-    return response.json();
-  },
-};
-
-// Students API
-export const studentsApi = {
-  getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/students`);
-    return response.json();
-  },
-
-  getById: async (id: number) => {
-    const response = await fetch(`${API_BASE_URL}/students/${id}`);
-    return response.json();
-  },
-
-  create: async (data: any) => {
-    const response = await fetch(`${API_BASE_URL}/students`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.message || 'Failed to create student');
-    }
-    return result;
-  },
-
-  update: async (id: number, data: any) => {
-    const response = await fetch(`${API_BASE_URL}/students/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.message || 'Failed to update student');
-    }
-    return result;
-  },
-
-  delete: async (id: number) => {
-    const response = await fetch(`${API_BASE_URL}/students/${id}`, {
-      method: 'DELETE',
-    });
-    return response.ok;
-  },
-};
-
-// Allocations API
 export const allocationsApi = {
-  getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/allocations`);
-    return response.json();
-  },
-
-  getById: async (id: number) => {
-    const response = await fetch(`${API_BASE_URL}/allocations/${id}`);
-    return response.json();
-  },
-
-  create: async (data: any) => {
-    const response = await fetch(`${API_BASE_URL}/allocations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.message || 'Failed to create allocation');
-    }
-    return result;
-  },
-
-  update: async (id: number, data: any) => {
-    const response = await fetch(`${API_BASE_URL}/allocations/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.message || 'Failed to update allocation');
-    }
-    return result;
-  },
-
+  getAll: () => unwrap(api.get('/allocations')),
+  getById: (id: number) => unwrap(api.get(`/allocations/${id}`)),
+  create: (data: unknown) => unwrap(api.post('/allocations', data)),
+  update: (id: number, data: unknown) => unwrap(api.put(`/allocations/${id}`, data)),
   delete: async (id: number) => {
-    const response = await fetch(`${API_BASE_URL}/allocations/${id}`, {
-      method: 'DELETE',
-    });
-    return response.ok;
-  },
+    await api.delete(`/allocations/${id}`);
+    return true;
+  }
 };
 
-// Helper function to get auth headers
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-  };
-};
-
-// Student Portal API
 export const studentApi = {
-  getProfile: async () => {
-    const response = await fetch(`${API_BASE_URL}/student/me`, {
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
-
-  getRoom: async () => {
-    const response = await fetch(`${API_BASE_URL}/student/room`, {
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
-
-  getMenu: async () => {
-    const response = await fetch(`${API_BASE_URL}/student/menu`, {
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
-
-  getComplaints: async () => {
-    const response = await fetch(`${API_BASE_URL}/student/complaints`, {
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
-
-  submitComplaint: async (data: { message: string; category: string }) => {
-    const response = await fetch(`${API_BASE_URL}/student/complaint`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    return response.json();
-  },
-
-  getDashboard: async () => {
-    const response = await fetch(`${API_BASE_URL}/student/dashboard`, {
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
+  getProfile: () => unwrap(api.get('/student/me')),
+  getRoom: () => unwrap(api.get('/student/room')),
+  getMenu: () => unwrap(api.get('/student/menu')),
+  getComplaints: () => unwrap(api.get('/complaints')),
+  submitComplaint: (data: { message: string; category: string }) => unwrap(api.post('/complaints', data)),
+  getDashboard: () => unwrap(api.get('/student/dashboard')),
+  submitApplication: (data: {
+    fullName: string;
+    registerNumber: string;
+    department: string;
+    yearOfStudy: '1' | '2' | '3' | '4';
+    gender: 'MALE' | 'FEMALE' | 'OTHER';
+    dateOfBirth: string;
+    studentEmail: string;
+    mobileNumber: string;
+    guardianName: string;
+    relationship: string;
+    guardianContactNumber: string;
+    guardianAddress: string;
+  }) => unwrap(api.post('/applications', data)),
+  getApplications: () => unwrap(api.get('/applications')),
+  submitRequest: (data: { type: string; title: string; description: string; fromDate?: string; toDate?: string; targetRoomNumber?: string }) =>
+    unwrap(api.post('/requests', data)),
+  getRequests: () => unwrap(api.get('/requests')),
+  getStaffDirectory: () => unwrap(api.get('/complaints/directory/staff')),
+  getPayments: () => unwrap(api.get('/payments'))
 };
 
-// Admin API for Complaints and Menu
 export const adminApi = {
-  // Complaints
-  getComplaints: async () => {
-    const response = await fetch(`${API_BASE_URL}/admin/complaints`, {
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
+  getApplications: () => unwrap(api.get('/applications')),
+  getComplaints: () => unwrap(api.get('/complaints')),
+  updateComplaint: (id: number, data: { status?: string; adminReply?: string }) => unwrap(api.put(`/complaints/${id}/status`, data)),
+  assignComplaint: (id: number, data: { assignedStaffRole: string }) => unwrap(api.put(`/complaints/${id}/assign`, data)),
+  deleteComplaint: (id: number) => unwrap(api.delete(`/admin/complaints/${id}`)),
+  getStats: () => unwrap(api.get('/dashboard/summary')),
+  getMenu: () => unwrap(api.get('/admin/menu')),
+  updateMenu: (data: { weekStartDate: string; menuItems: any[] }) => unwrap(api.post('/admin/menu', data)),
+  getStaff: () => unwrap(api.get('/staff')),
+  createStaff: (data: unknown) => unwrap(api.post('/staff', data)),
+  updateStaff: (id: number, data: unknown) => unwrap(api.put(`/staff/${id}`, data)),
+  getPayments: () => unwrap(api.get('/payments')),
+  addPayment: (data: unknown) => unwrap(api.post('/payments', data)),
+  getAttendance: () => unwrap(api.get('/attendance')),
+  addAttendance: (data: unknown) => unwrap(api.post('/attendance', data)),
+  getHostels: () => unwrap(api.get('/hostels')),
+  addHostel: (data: unknown) => unwrap(api.post('/hostels', data))
+};
 
-  getComplaint: async (id: number) => {
-    const response = await fetch(`${API_BASE_URL}/admin/complaints/${id}`, {
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
+export const wardenApi = {
+  getDashboard: () => unwrap(api.get('/dashboard/summary')),
+  getApplications: () => unwrap(api.get('/applications')),
+  reviewApplication: (id: number, data: { status: 'APPROVED' | 'REJECTED'; remarks?: string }) => unwrap(api.put(`/applications/${id}/review`, data)),
+  getRequests: () => unwrap(api.get('/requests')),
+  reviewRequest: (id: number, data: { status: 'APPROVED' | 'REJECTED'; wardenRemarks?: string }) => unwrap(api.put(`/requests/${id}/review`, data)),
+  getComplaints: () => unwrap(api.get('/complaints')),
+  assignComplaint: (id: number, assignedStaffRole: string) => unwrap(api.put(`/complaints/${id}/assign`, { assignedStaffRole })),
+  getAttendance: () => unwrap(api.get('/attendance'))
+};
 
-  updateComplaint: async (id: number, data: { status?: string; adminReply?: string }) => {
-    const response = await fetch(`${API_BASE_URL}/admin/complaints/${id}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    return response.json();
-  },
-
-  deleteComplaint: async (id: number) => {
-    const response = await fetch(`${API_BASE_URL}/admin/complaints/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
-
-  // Menu
-  getMenu: async () => {
-    const response = await fetch(`${API_BASE_URL}/admin/menu`, {
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
-
-  updateMenu: async (data: { weekStartDate: string; menuItems: any[] }) => {
-    const response = await fetch(`${API_BASE_URL}/admin/menu`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    return response.json();
-  },
-
-  // Stats
-  getStats: async () => {
-    const response = await fetch(`${API_BASE_URL}/admin/stats`, {
-      headers: getAuthHeaders(),
-    });
-    return response.json();
-  },
+export const staffApi = {
+  getDashboard: () => unwrap(api.get('/dashboard/summary')),
+  getComplaints: () => unwrap(api.get('/complaints')),
+  updateComplaintStatus: (id: number, status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED') => unwrap(api.put(`/complaints/${id}/status`, { status }))
 };

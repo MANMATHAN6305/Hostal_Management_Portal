@@ -7,12 +7,14 @@ export interface Room {
   status: RoomStatus;
   description: string;
   capacity: number;
+  occupied: number;
   floorNumber: number;
   blockName: string;
+  gender: 'MALE' | 'FEMALE';
   amenities: string;
 }
 
-export type RoomType = 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'DORMITORY';
+export type RoomType = 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'FOUR_BED' | 'FIVE_BED' | 'EIGHT_BED' | 'DORMITORY';
 export type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE';
 
 // Room Allocation Types
@@ -60,7 +62,8 @@ export interface User {
   id: number;
   fullName: string;
   email: string;
-  role: 'ADMIN' | 'WARDEN' | 'STAFF';
+  role: 'ADMIN' | 'WARDEN' | 'STAFF' | 'STUDENT';
+  staffRole?: 'ELECTRICIAN' | 'CLEANER' | 'CARETAKER';
   isActive: boolean;
 }
 

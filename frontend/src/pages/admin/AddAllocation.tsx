@@ -31,7 +31,10 @@ export default function AddAllocation() {
         roomsApi.getAll(),
         studentsApi.getAll()
       ]);
-      setRooms(Array.isArray(roomsData) ? roomsData.filter((r: Room) => r.status === 'AVAILABLE') : []);
+      // Show rooms that have beds available (not under maintenance and occupied < capacity)
+      setRooms(Array.isArray(roomsData) ? roomsData.filter((r: Room) => 
+        r.status !== 'MAINTENANCE' && (r.occupied || 0) < (r.capacity || 1)
+      ) : []);
       setStudents(Array.isArray(studentsData) ? studentsData : []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -111,10 +114,13 @@ export default function AddAllocation() {
                 <option value="">Select a room</option>
                 {rooms.map(room => (
                   <option key={room.id} value={room.id}>
-                    Room {room.roomNumber} - {room.blockName} ({room.roomType}, {room.capacity} beds)
+                    Room {room.roomNumber} - {room.blockName} ({room.roomType}, {(room.capacity || 0) - (room.occupied || 0)} of {room.capacity} beds available)
                   </option>
                 ))}
               </select>
+              {rooms.length === 0 && (
+                <p className="text-sm text-amber-600 mt-1">No rooms with available beds found.</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

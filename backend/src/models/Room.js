@@ -13,8 +13,16 @@ const Room = sequelize.define('Room', {
     unique: true
   },
   roomType: {
-    type: DataTypes.ENUM('SINGLE', 'DOUBLE', 'TRIPLE', 'DORMITORY', 'Select Room Type'),
+    type: DataTypes.ENUM('SINGLE', 'DOUBLE', 'TRIPLE', 'FOUR_BED', 'FIVE_BED', 'EIGHT_BED', 'DORMITORY', 'Select Room Type'),
     defaultValue: 'Select Room Type'
+  },
+  gender: {
+    type: DataTypes.ENUM('MALE', 'FEMALE'),
+    defaultValue: 'MALE'
+  },
+  capacity: {
+    type: DataTypes.INTEGER,
+    defaultValue: 1
   },
   occupied: {
     type: DataTypes.INTEGER,

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Student = require('../models/Student');
 const { generateToken, verifyToken } = require('../middleware/auth');
@@ -16,6 +17,7 @@ passport.use(new GoogleStrategy({
     try {
       const email = profile.emails[0].value;
       const fullName = profile.displayName;
+      const googleId = profile.id;
       
       // Check if user exists
       let user = await User.findOne({ where: { email } });
@@ -25,26 +27,19 @@ passport.use(new GoogleStrategy({
         user = await User.create({
           fullName,
           email,
-          password: 'google-oauth-' + Date.now(), // Placeholder password for OAuth users
+          googleId,
           role: 'STUDENT', // Default role for new Google sign-ins
           isActive: true
         });
-
-        // Create student record for new users
-        const nameParts = fullName.trim().split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ') || '';
-        
-        await Student.create({
-          studentId: 'STU' + Date.now(),
-          firstName,
-          lastName,
-          email,
-          department: 'Not Assigned',
-          year: 1,
-          gender: 'Select Gender'
-        });
+      } else if (!user.googleId) {
+        user.googleId = googleId;
       }
+
+      // Backward compatibility for legacy users with placeholder role values
+      if (!user.role || user.role === 'Select Role') {
+        user.role = 'STUDENT';
+      }
+      await user.save();
       
       return done(null, user);
     } catch (error) {
@@ -113,7 +108,7 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    const user = await User.findOne({ where: { email, password } });
+    const user = await User.findOne({ where: { email } });
     
     if (!user) {
       return res.json({
@@ -125,6 +120,34 @@ router.post('/login', async (req, res) => {
         role: null,
         token: null
       });
+    }
+
+    if (!user.password && !user.googleId) {
+      return res.json({
+        success: false,
+        message: 'Account has no password set. Use Google login.',
+        userId: null,
+        fullName: null,
+        email: null,
+        role: null,
+        token: null
+      });
+    }
+
+    if (user.password) {
+      const isMatch = await bcrypt.compare(password, user.password).catch(() => false);
+      const isLegacyPlainMatch = user.password === password;
+      if (!isMatch && !isLegacyPlainMatch) {
+        return res.json({
+          success: false,
+          message: 'Invalid email or password',
+          userId: null,
+          fullName: null,
+          email: null,
+          role: null,
+          token: null
+        });
+      }
     }
     
     if (!user.isActive) {
@@ -145,26 +168,8 @@ router.post('/login', async (req, res) => {
     // If student, also get student ID
     let studentId = null;
     if (user.role === 'STUDENT') {
-      let student = await Student.findOne({ where: { email: user.email } });
-      
-      // If no student record exists, create one for existing users
-      if (!student) {
-        const nameParts = user.fullName.trim().split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ') || '';
-        
-        student = await Student.create({
-          studentId: 'STU' + Date.now(),
-          firstName,
-          lastName,
-          email: user.email,
-          department: 'Not Assigned',
-          year: 1,
-          gender: 'Select Gender'
-        });
-      }
-      
-      studentId = student.id;
+      const student = await Student.findOne({ where: { email: user.email } });
+      if (student) studentId = student.id;
     }
     
     res.json({
@@ -189,7 +194,7 @@ router.post('/login', async (req, res) => {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { fullName, email, password, role } = req.body;
+    const { fullName, email, password, role, staffRole, phone } = req.body;
     
     // Check if email already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -204,43 +209,28 @@ router.post('/register', async (req, res) => {
       });
     }
     
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+
     // Create new user
     const user = await User.create({
       fullName,
       email,
-      password,
-      role: role || 'STAFF',
+      password: hashedPassword,
+      role: role || 'STUDENT',
+      staffRole: role === 'STAFF' ? (staffRole || null) : null,
+      phone: phone || null,
       isActive: true
     });
 
     // If registering as a student, also create a Student record
-    if (role === 'STUDENT') {
-      // Split fullName into firstName and lastName
-      const nameParts = fullName.trim().split(' ');
-      const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(' ') || '';
-      
-      // Generate a student ID (e.g., STU + timestamp)
-      const studentId = 'STU' + Date.now();
-      
-      await Student.create({
-        studentId,
-        firstName,
-        lastName,
-        email,
-        department: 'Not Assigned',
-        year: 1,
-        gender: 'Select Gender'
-      });
-    }
-    
     res.json({
       success: true,
       message: 'Registration successful',
       userId: user.id,
       fullName: user.fullName,
       email: user.email,
-      role: user.role
+      role: user.role,
+      staffRole: user.staffRole
     });
   } catch (error) {
     console.error('Registration error:', error);

@@ -296,7 +296,7 @@ router.get('/stats', verifyToken, isAdmin, async (req, res) => {
     const totalComplaints = await Complaint.count();
     const pendingComplaints = await Complaint.count({ where: { status: 'PENDING' } });
     const inProgressComplaints = await Complaint.count({ where: { status: 'IN_PROGRESS' } });
-    const completedComplaints = await Complaint.count({ where: { status: 'COMPLETED' } });
+    const completedComplaints = await Complaint.count({ where: { status: 'RESOLVED' } });
 
     res.json({
       success: true,

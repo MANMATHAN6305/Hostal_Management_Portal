@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -16,11 +17,10 @@ export default function DashboardLayout() {
       return;
     }
 
-    // Redirect students to student dashboard
-    if (userRole === 'STUDENT') {
-      navigate('/student/dashboard');
-    }
-  }, [navigate]);
+    if (userRole === 'STUDENT') navigate('/student/dashboard');
+    if (userRole === 'WARDEN' && location.pathname === '/dashboard') navigate('/warden/dashboard');
+    if (userRole === 'STAFF' && location.pathname === '/dashboard') navigate('/staff/dashboard');
+  }, [navigate, location.pathname]);
 
   return (
     <div className="min-h-screen bg-slate-100">

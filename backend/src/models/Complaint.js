@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const Student = require('./Student');
+const User = require('./User');
 
 const Complaint = sequelize.define('Complaint', {
   id: {
@@ -13,7 +14,7 @@ const Complaint = sequelize.define('Complaint', {
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED'),
+    type: DataTypes.ENUM('PENDING', 'IN_PROGRESS', 'RESOLVED'),
     defaultValue: 'PENDING'
   },
   adminReply: {
@@ -21,8 +22,20 @@ const Complaint = sequelize.define('Complaint', {
     allowNull: true
   },
   category: {
-    type: DataTypes.ENUM('MAINTENANCE', 'CLEANLINESS', 'FOOD', 'SECURITY', 'OTHER'),
+    type: DataTypes.ENUM('ELECTRICAL', 'CLEANING', 'MAINTENANCE', 'OTHER'),
     defaultValue: 'OTHER'
+  },
+  assignedStaffRole: {
+    type: DataTypes.ENUM('ELECTRICIAN', 'CLEANER', 'CARETAKER'),
+    allowNull: true
+  },
+  assignedById: {
+    type: DataTypes.BIGINT,
+    allowNull: true
+  },
+  resolvedAt: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
   timestamps: true
@@ -31,5 +44,7 @@ const Complaint = sequelize.define('Complaint', {
 // Association
 Student.hasMany(Complaint);
 Complaint.belongsTo(Student);
+User.hasMany(Complaint, { foreignKey: 'assignedById', as: 'AssignedComplaints' });
+Complaint.belongsTo(User, { foreignKey: 'assignedById', as: 'AssignedBy' });
 
 module.exports = Complaint;

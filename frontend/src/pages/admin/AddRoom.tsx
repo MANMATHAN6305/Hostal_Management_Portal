@@ -7,18 +7,22 @@ import { roomsApi } from '@/lib/api';
 
 // Gender-based hostel names
 const maleHostels = [
-  { value: 'Emerald', label: 'Emerald' },
-  { value: 'Pearl', label: 'Pearl' },
-  { value: 'Ruby', label: 'Ruby' },
-  { value: 'Diamond', label: 'Diamond' },
-  { value: 'Sapphire', label: 'Sapphire' },
-  { value: 'Coral (AC)', label: 'Coral (AC Type)' },
+  { value: 'Sapphire', label: 'Sapphire (282 four-bedded rooms)' },
+  { value: 'Emerald', label: 'Emerald (284 four-bedded rooms)' },
+  { value: 'Ruby', label: 'Ruby (237 rooms - mixed)' },
+  { value: 'Diamond', label: 'Diamond (180 rooms - mixed)' },
+  { value: 'Coral', label: 'Coral (52 rooms - AC)' },
+  { value: 'Pearl', label: 'Pearl (138 four-bedded rooms)' },
 ];
 
 const femaleHostels = [
-  { value: 'Gangai', label: 'Gangai' },
-  { value: 'Yamunai', label: 'Yamunai' },
-  { value: 'Sindhu', label: 'Sindhu' },
+  { value: 'Ganga', label: 'Ganga (132 rooms - mixed)' },
+  { value: 'Yamuna', label: 'Yamuna (99 rooms - mixed)' },
+  { value: 'Narmadha', label: 'Narmadha (128 rooms - mixed)' },
+  { value: 'Cauvery', label: 'Cauvery (126 rooms - mixed)' },
+  { value: 'North Bhavani', label: 'North Bhavani (72 rooms - mixed)' },
+  { value: 'South Bhavani', label: 'South Bhavani (72 rooms - mixed)' },
+  { value: 'Old Bhavani', label: 'Old Bhavani (9 rooms - special)' },
 ];
 
 export default function AddRoom() {
@@ -58,7 +62,10 @@ export default function AddRoom() {
       case 'SINGLE': return 1;
       case 'DOUBLE': return 2;
       case 'TRIPLE': return 3;
-      case 'DORMITORY': return 4;
+      case 'FOUR_BED': return 4;
+      case 'FIVE_BED': return 5;
+      case 'EIGHT_BED': return 8;
+      case 'DORMITORY': return 10;
       default: return 1;
     }
   };
@@ -165,7 +172,10 @@ export default function AddRoom() {
                   <option value="SINGLE">Single (1 bed)</option>
                   <option value="DOUBLE">Double (2 beds)</option>
                   <option value="TRIPLE">Triple (3 beds)</option>
-                  <option value="DORMITORY">Dormitory (4+ beds)</option>
+                  <option value="FOUR_BED">Four Bedded (4 beds)</option>
+                  <option value="FIVE_BED">Five Bedded (5 beds)</option>
+                  <option value="EIGHT_BED">Eight Bedded (8 beds)</option>
+                  <option value="DORMITORY">Dormitory (10+ beds)</option>
                 </select>
               </div>
 
