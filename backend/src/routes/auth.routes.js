@@ -222,7 +222,8 @@ router.post('/register', async (req, res) => {
       isActive: true
     });
 
-    // If registering as a student, also create a Student record
+    const token = generateToken(user);
+
     res.json({
       success: true,
       message: 'Registration successful',
@@ -230,7 +231,9 @@ router.post('/register', async (req, res) => {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
-      staffRole: user.staffRole
+      staffRole: user.staffRole,
+      studentId: null,
+      token
     });
   } catch (error) {
     console.error('Registration error:', error);

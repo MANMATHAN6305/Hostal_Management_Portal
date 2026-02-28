@@ -1,17 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { allocationsApi, roomsApi, studentsApi } from '@/lib/api';
+import { allocationsApi, hostelsApi, roomsApi, studentsApi } from '@/lib/api';
 import type { Room, Student } from '@/types';
+
+type ApiHostel = {
+  id: number;
+  name: string;
+  gender: 'MALE' | 'FEMALE' | 'COED';
+};
+
+type HostelOption = {
+  value: string;
+  name: string;
+};
 
 export default function AddAllocation() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [hostels, setHostels] = useState<ApiHostel[]>([]);
   const [formData, setFormData] = useState({
     studentId: '',
+    gender: '',
+    hostelId: '',
     roomId: '',
     academicYear: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
     semester: 'Fall',
@@ -27,15 +42,30 @@ export default function AddAllocation() {
 
   const fetchData = async () => {
     try {
-      const [roomsData, studentsData] = await Promise.all([
+      const [roomsData, studentsData, hostelsData] = await Promise.allSettled([
         roomsApi.getAll(),
-        studentsApi.getAll()
+        studentsApi.getAll(),
+        hostelsApi.getAll()
       ]);
-      // Show rooms that have beds available (not under maintenance and occupied < capacity)
-      setRooms(Array.isArray(roomsData) ? roomsData.filter((r: Room) => 
+
+      const roomsList =
+        roomsData.status === 'fulfilled' && Array.isArray(roomsData.value)
+          ? roomsData.value
+          : [];
+      const studentsList =
+        studentsData.status === 'fulfilled' && Array.isArray(studentsData.value)
+          ? studentsData.value
+          : [];
+      const hostelsList =
+        hostelsData.status === 'fulfilled' && Array.isArray(hostelsData.value?.hostels)
+          ? hostelsData.value.hostels
+          : [];
+
+      setRooms(roomsList.filter((r: Room) =>
         r.status !== 'MAINTENANCE' && (r.occupied || 0) < (r.capacity || 1)
-      ) : []);
-      setStudents(Array.isArray(studentsData) ? studentsData : []);
+      ));
+      setStudents(studentsList);
+      setHostels(hostelsList);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     }
@@ -43,6 +73,10 @@ export default function AddAllocation() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.studentId || !formData.gender || !formData.hostelId || !formData.roomId) {
+      alert('Please select student, hostel, and room. Student must have gender (MALE/FEMALE).');
+      return;
+    }
     setLoading(true);
     
     try {
@@ -59,7 +93,7 @@ export default function AddAllocation() {
       navigate('/allocations');
     } catch (error: any) {
       console.error('Failed to create allocation:', error);
-      alert(error.message || 'Failed to create allocation');
+      alert(error?.response?.data?.message || error?.message || 'Failed to create allocation');
       setLoading(false);
     }
   };
@@ -69,12 +103,64 @@ export default function AddAllocation() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const selectedStudent = useMemo(
+    () => students.find((s) => s.id === parseInt(formData.studentId)),
+    [formData.studentId, students]
+  );
+
+  const selectedStudentGender = useMemo(() => {
+    if (!selectedStudent) return '';
+    if (selectedStudent.gender === 'MALE' || selectedStudent.gender === 'FEMALE') {
+      return selectedStudent.gender;
+    }
+    return '';
+  }, [selectedStudent]);
+
+  // Auto derive gender from selected student
+  useEffect(() => {
+    setFormData((prev) => {
+      if (prev.gender === selectedStudentGender) return prev;
+      return { ...prev, gender: selectedStudentGender, hostelId: '', roomId: '' };
+    });
+  }, [selectedStudentGender]);
+
+  const filteredHostels: HostelOption[] = useMemo(() => {
+    if (!formData.gender) return [];
+
+    if (hostels.length > 0) {
+      return hostels
+        .filter((hostel) => hostel.gender === formData.gender || hostel.gender === 'COED')
+        .map((hostel) => ({
+          value: `hostel-${hostel.id}`,
+          name: hostel.name
+        }));
+    }
+
+    const names = Array.from(
+      new Set(
+        rooms
+          .filter((room) => room.gender === formData.gender)
+          .map((room) => room.blockName)
+      )
+    );
+    return names.map((name) => ({ value: `block-${name}`, name }));
+  }, [formData.gender, hostels, rooms]);
+
+  const selectedHostel = filteredHostels.find((hostel) => hostel.value === formData.hostelId);
+
+  const filteredRooms = rooms.filter((room) => {
+    const matchesGender = room.gender === formData.gender;
+    const matchesHostel = !selectedHostel || room.blockName === selectedHostel.name;
+    return matchesGender && matchesHostel;
+  });
+
   const currentYear = new Date().getFullYear();
   const academicYears = [
     `${currentYear}-${currentYear + 1}`,
     `${currentYear + 1}-${currentYear + 2}`,
     `${currentYear - 1}-${currentYear}`
   ];
+
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -103,23 +189,70 @@ export default function AddAllocation() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Student Gender</label>
+              <input
+                type="text"
+                value={formData.gender || 'Not Set'}
+                readOnly
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-100 text-slate-700"
+              />
+              {formData.studentId && !formData.gender && (
+                <p className="text-sm text-amber-600 mt-1">
+                  Selected student gender is not set. Please update the student profile first.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Hostel *</label>
+              <Select
+                name="hostelId"
+                value={selectedHostel ? { value: selectedHostel.value, label: selectedHostel.name } : null}
+                onChange={(option) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    hostelId: option ? option.value : '',
+                    roomId: ''
+                  }))
+                }
+                options={filteredHostels.map((hostel) => ({
+                  value: hostel.value,
+                  label: hostel.name
+                }))}
+                isClearable
+                isSearchable
+                placeholder={formData.studentId ? 'Search hostel...' : 'Select student first'}
+                classNamePrefix="react-select"
+                isDisabled={!formData.gender}
+              />
+              {formData.studentId && formData.gender && filteredHostels.length === 0 && (
+                <p className="text-sm text-amber-600 mt-1">No hostels available for this gender.</p>
+              )}
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Room *</label>
-              <select
+              <Select
                 name="roomId"
-                value={formData.roomId}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
-              >
-                <option value="">Select a room</option>
-                {rooms.map(room => (
-                  <option key={room.id} value={room.id}>
-                    Room {room.roomNumber} - {room.blockName} ({room.roomType}, {(room.capacity || 0) - (room.occupied || 0)} of {room.capacity} beds available)
-                  </option>
-                ))}
-              </select>
-              {rooms.length === 0 && (
-                <p className="text-sm text-amber-600 mt-1">No rooms with available beds found.</p>
+                value={filteredRooms
+                  .map((room) => ({
+                    value: room.id,
+                    label: `Room ${room.roomNumber} - ${room.blockName} (${room.roomType}, ${(room.capacity || 0) - (room.occupied || 0)} of ${room.capacity} beds available)`
+                  }))
+                  .find((opt) => opt.value === parseInt(formData.roomId)) || null}
+                onChange={option => setFormData(prev => ({ ...prev, roomId: option ? option.value.toString() : '' }))}
+                options={filteredRooms.map((room) => ({
+                  value: room.id,
+                  label: `Room ${room.roomNumber} - ${room.blockName} (${room.roomType}, ${(room.capacity || 0) - (room.occupied || 0)} of ${room.capacity} beds available)`
+                }))}
+                isClearable
+                isSearchable
+                placeholder={selectedHostel ? 'Search room...' : 'Select hostel first'}
+                classNamePrefix="react-select"
+                isDisabled={!selectedHostel}
+              />
+              {selectedHostel && filteredRooms.length === 0 && (
+                <p className="text-sm text-amber-600 mt-1">No rooms with available beds found for this gender.</p>
               )}
             </div>
 

@@ -43,6 +43,10 @@ export const studentsApi = {
   }
 };
 
+export const hostelsApi = {
+  getAll: () => unwrap(api.get('/hostels'))
+};
+
 export const allocationsApi = {
   getAll: () => unwrap(api.get('/allocations')),
   getById: (id: number) => unwrap(api.get(`/allocations/${id}`)),
@@ -75,8 +79,33 @@ export const studentApi = {
     guardianContactNumber: string;
     guardianAddress: string;
   }) => unwrap(api.post('/applications', data)),
+  updateApplication: (id: number, data: {
+    fullName: string;
+    registerNumber: string;
+    department: string;
+    yearOfStudy: '1' | '2' | '3' | '4';
+    gender: 'MALE' | 'FEMALE' | 'OTHER';
+    dateOfBirth: string;
+    studentEmail: string;
+    mobileNumber: string;
+    guardianName: string;
+    relationship: string;
+    guardianContactNumber: string;
+    guardianAddress: string;
+  }) => unwrap(api.put(`/applications/${id}`, data)),
   getApplications: () => unwrap(api.get('/applications')),
-  submitRequest: (data: { type: string; title: string; description: string; fromDate?: string; toDate?: string; targetRoomNumber?: string }) =>
+  submitRequest: (data: {
+    type: string;
+    title: string;
+    description: string;
+    fromDate?: string;
+    toDate?: string;
+    targetRoomNumber?: string;
+    currentRoomNumber?: string;
+    studentName?: string;
+    rollNumber?: string;
+    reasonForRoomChange?: string;
+  }) =>
     unwrap(api.post('/requests', data)),
   getRequests: () => unwrap(api.get('/requests')),
   getStaffDirectory: () => unwrap(api.get('/complaints/directory/staff')),
@@ -111,6 +140,8 @@ export const wardenApi = {
   reviewRequest: (id: number, data: { status: 'APPROVED' | 'REJECTED'; wardenRemarks?: string }) => unwrap(api.put(`/requests/${id}/review`, data)),
   getComplaints: () => unwrap(api.get('/complaints')),
   assignComplaint: (id: number, assignedStaffRole: string) => unwrap(api.put(`/complaints/${id}/assign`, { assignedStaffRole })),
+  updateComplaint: (id: number, data: { status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'; adminReply?: string }) =>
+    unwrap(api.put(`/complaints/${id}/status`, data)),
   getAttendance: () => unwrap(api.get('/attendance'))
 };
 

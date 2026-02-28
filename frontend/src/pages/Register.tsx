@@ -15,6 +15,28 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const persistSession = (session: {
+    token?: string | null;
+    userId?: string | number | null;
+    email?: string | null;
+    fullName?: string | null;
+    role?: string | null;
+    studentId?: string | number | null;
+  }) => {
+    localStorage.clear();
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('token', session.token || '');
+    localStorage.setItem('userId', session.userId ? String(session.userId) : '');
+    localStorage.setItem('userEmail', session.email || '');
+    localStorage.setItem('userName', session.fullName || '');
+    localStorage.setItem('userRole', session.role || '');
+    if (session.studentId) {
+      localStorage.setItem('studentId', String(session.studentId));
+    } else {
+      localStorage.removeItem('studentId');
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -40,11 +62,14 @@ export default function Register() {
       });
 
       if (response.success) {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userId', response.userId?.toString() || '');
-        localStorage.setItem('userEmail', response.email || '');
-        localStorage.setItem('userName', response.fullName || '');
-        localStorage.setItem('userRole', response.role || '');
+        persistSession({
+          token: response.token,
+          userId: response.userId,
+          email: response.email,
+          fullName: response.fullName,
+          role: response.role,
+          studentId: response.studentId
+        });
         
         if (response.role === 'STUDENT') navigate('/student/dashboard');
         else if (response.role === 'WARDEN') navigate('/warden/dashboard');

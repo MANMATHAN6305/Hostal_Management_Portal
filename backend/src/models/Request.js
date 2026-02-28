@@ -26,11 +26,11 @@ const Request = sequelize.define('Request', {
     allowNull: false
   },
   fromDate: {
-    type: DataTypes.DATEONLY,
+    type: DataTypes.DATE,
     allowNull: true
   },
   toDate: {
-    type: DataTypes.DATEONLY,
+    type: DataTypes.DATE,
     allowNull: true
   },
   targetRoomNumber: {

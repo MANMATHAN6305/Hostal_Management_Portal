@@ -31,6 +31,17 @@ export default function WardenRequests() {
                 <span className="font-semibold">{r.status}</span>
               </div>
               <p className="text-sm text-gray-600">{r.Student?.firstName} {r.Student?.lastName}</p>
+              <p className="text-sm text-gray-600">{r.description}</p>
+              {r.type === 'LEAVE' && r.fromDate && r.toDate && (
+                <p className="text-xs text-gray-500">
+                  {new Date(r.fromDate).toLocaleString()} to {new Date(r.toDate).toLocaleString()}
+                </p>
+              )}
+              {r.type === 'ROOM_CHANGE' && (
+                <p className="text-xs text-gray-500">
+                  {r.studentName || r.Student?.firstName} ({r.rollNumber || r.Student?.studentId}) | {r.currentRoomNumber || 'N/A'} to {r.targetRoomNumber || 'N/A'}
+                </p>
+              )}
               {r.status === 'PENDING' && (
                 <div className="flex gap-2 mt-2">
                   <Button size="sm" onClick={() => review(r.id, 'APPROVED')}>Approve</Button>

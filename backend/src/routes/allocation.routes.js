@@ -70,6 +70,19 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ message: 'Room not found' });
     }
 
+    const student = await Student.findByPk(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    if (!['MALE', 'FEMALE'].includes(student.gender)) {
+      return res.status(400).json({ message: 'Student gender must be set before allocation.' });
+    }
+
+    if (room.gender !== student.gender) {
+      return res.status(400).json({ message: `Selected room is ${room.gender.toLowerCase()} only.` });
+    }
+
     // Step 2: Verify room availability (check if occupied < capacity)
     if (room.status === 'MAINTENANCE') {
       return res.status(400).json({ message: 'Room is under maintenance and cannot be allocated' });
@@ -99,7 +112,7 @@ router.post('/', async (req, res) => {
       StudentId: studentId,
       academicYear: academicYear,
       semester: semester,
-      status: 'ACTIVE',
+      status: req.body.status || 'ACTIVE',
       allocationDate: allocationDate,
       endDate: endDate,
       specialRequests: specialRequests
@@ -107,14 +120,16 @@ router.post('/', async (req, res) => {
     
     const allocation = await Allocation.create(allocationData);
 
-    // Step 5: Update room occupied count and status
-    const newOccupied = room.occupied + 1;
-    const newStatus = newOccupied >= room.capacity ? 'OCCUPIED' : 'AVAILABLE';
-    
-    await room.update({
-      occupied: newOccupied,
-      status: newStatus
-    });
+    // Step 5: Update room occupied count and status only for active allocations
+    if (allocation.status === 'ACTIVE') {
+      const newOccupied = room.occupied + 1;
+      const newStatus = newOccupied >= room.capacity ? 'OCCUPIED' : 'AVAILABLE';
+
+      await room.update({
+        occupied: newOccupied,
+        status: newStatus
+      });
+    }
     
     // Fetch the allocation with related data
     const createdAllocation = await Allocation.findByPk(allocation.id, {
@@ -140,13 +155,23 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Allocation not found' });
     }
 
-    const oldRoomId = allocation.RoomId;
+    const oldRoomId = Number(allocation.RoomId);
     const oldStatus = allocation.status;
-    const newRoomId = req.body.roomId;
+    const newRoomId = req.body.roomId ? Number(req.body.roomId) : oldRoomId;
     const newStatus = req.body.status;
+    const nextStudentId = req.body.studentId ? Number(req.body.studentId) : allocation.StudentId;
+
+    const nextStudent = await Student.findByPk(nextStudentId);
+    if (!nextStudent) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    if (!['MALE', 'FEMALE'].includes(nextStudent.gender)) {
+      return res.status(400).json({ message: 'Student gender must be set before allocation.' });
+    }
 
     // Handle room change
-    if (newRoomId && newRoomId !== oldRoomId) {
+    if (newRoomId !== oldRoomId) {
       // Check if new room is available
       const newRoom = await Room.findByPk(newRoomId);
       if (!newRoom) {
@@ -157,6 +182,9 @@ router.put('/:id', async (req, res) => {
       }
       if (newRoom.occupied >= newRoom.capacity) {
         return res.status(400).json({ message: 'New room is fully occupied' });
+      }
+      if (newRoom.gender !== nextStudent.gender) {
+        return res.status(400).json({ message: `Selected room is ${newRoom.gender.toLowerCase()} only.` });
       }
 
       // Release old room (if allocation was active)
@@ -202,11 +230,16 @@ router.put('/:id', async (req, res) => {
           });
         }
       }
+    } else {
+      const currentRoom = await Room.findByPk(oldRoomId);
+      if (currentRoom && currentRoom.gender !== nextStudent.gender) {
+        return res.status(400).json({ message: `Selected room is ${currentRoom.gender.toLowerCase()} only.` });
+      }
     }
     
     await allocation.update({
-      RoomId: req.body.roomId,
-      StudentId: req.body.studentId,
+      RoomId: newRoomId,
+      StudentId: nextStudentId,
       academicYear: req.body.academicYear,
       semester: req.body.semester,
       status: req.body.status,

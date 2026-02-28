@@ -1,11 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const Student = require('../models/Student');
+const Application = require('../models/Application');
+const { Op } = require('sequelize');
 
 // GET /api/students - Get all students
 router.get('/', async (req, res) => {
   try {
+    const applicationRows = await Application.findAll({
+      attributes: ['StudentId'],
+      group: ['StudentId'],
+      raw: true
+    });
+    const studentIds = applicationRows.map((row) => row.StudentId).filter(Boolean);
+
+    if (studentIds.length === 0) {
+      return res.json([]);
+    }
+
     const students = await Student.findAll({
+      where: {
+        id: { [Op.in]: studentIds }
+      },
       order: [['id', 'DESC']]
     });
     

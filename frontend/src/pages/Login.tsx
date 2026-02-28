@@ -12,6 +12,28 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const persistSession = (session: {
+    token?: string | null;
+    userId?: string | number | null;
+    email?: string | null;
+    fullName?: string | null;
+    role?: string | null;
+    studentId?: string | number | null;
+  }) => {
+    localStorage.clear();
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('token', session.token || '');
+    localStorage.setItem('userId', session.userId ? String(session.userId) : '');
+    localStorage.setItem('userEmail', session.email || '');
+    localStorage.setItem('userName', session.fullName || '');
+    localStorage.setItem('userRole', session.role || '');
+    if (session.studentId) {
+      localStorage.setItem('studentId', String(session.studentId));
+    } else {
+      localStorage.removeItem('studentId');
+    }
+  };
+
   // Handle Google OAuth callback
   useEffect(() => {
     const token = searchParams.get('token');
@@ -28,15 +50,14 @@ export default function Login() {
     }
 
     if (token && userId) {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', userId);
-      localStorage.setItem('userEmail', email || '');
-      localStorage.setItem('userName', fullName || '');
-      localStorage.setItem('userRole', role || '');
-      if (studentId) {
-        localStorage.setItem('studentId', studentId);
-      }
+      persistSession({
+        token,
+        userId,
+        email,
+        fullName,
+        role,
+        studentId
+      });
 
       if (role === 'STUDENT') navigate('/student/dashboard', { replace: true });
       else if (role === 'WARDEN') navigate('/warden/dashboard', { replace: true });
@@ -58,15 +79,14 @@ export default function Login() {
       const response = await authApi.login(formData.email, formData.password);
       
       if (response.success) {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userId', response.userId?.toString() || '');
-        localStorage.setItem('userEmail', response.email || '');
-        localStorage.setItem('userName', response.fullName || '');
-        localStorage.setItem('userRole', response.role || '');
-        localStorage.setItem('token', response.token || '');
-        if (response.studentId) {
-          localStorage.setItem('studentId', response.studentId.toString());
-        }
+        persistSession({
+          token: response.token,
+          userId: response.userId,
+          email: response.email,
+          fullName: response.fullName,
+          role: response.role,
+          studentId: response.studentId
+        });
 
         if (response.role === 'STUDENT') navigate('/student/dashboard');
         else if (response.role === 'WARDEN') navigate('/warden/dashboard');
