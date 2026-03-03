@@ -13,51 +13,56 @@ interface MenuItem {
 
 const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 
-const emptyMenu: MenuItem[] = days.map(day => ({
+const buildEmptyMenu = (): MenuItem[] => days.map(day => ({
   day,
   breakfast: '',
   lunch: '',
   dinner: ''
 }));
 
+const getCurrentMonday = () => {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  const monday = new Date(today.setDate(diff));
+  return monday.toISOString().split('T')[0];
+};
+
 export default function AdminMenu() {
-  const [menu, setMenu] = useState<MenuItem[]>(emptyMenu);
+  const [menu, setMenu] = useState<MenuItem[]>(buildEmptyMenu());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [weekStartDate, setWeekStartDate] = useState(() => {
-    // Get this Monday's date
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const monday = new Date(today.setDate(diff));
-    return monday.toISOString().split('T')[0];
-  });
+  const [weekStartDate, setWeekStartDate] = useState(getCurrentMonday);
 
   useEffect(() => {
-    fetchMenu();
-  }, []);
+    fetchMenu(weekStartDate);
+  }, [weekStartDate]);
 
-  const fetchMenu = async () => {
+  const fetchMenu = async (targetWeek: string) => {
+    setLoading(true);
+    setError('');
     try {
-      const response = await adminApi.getMenu();
-      if (response.success && response.menu?.length > 0) {
-        // Map the menu data to our format, filling in missing days
-        const menuMap = new Map(response.menu.map((m: MenuItem) => [m.day, m]));
-        const mappedMenu = days.map(day => ({
-          day,
-          breakfast: (menuMap.get(day) as MenuItem)?.breakfast || '',
-          lunch: (menuMap.get(day) as MenuItem)?.lunch || '',
-          dinner: (menuMap.get(day) as MenuItem)?.dinner || '',
-        }));
-        setMenu(mappedMenu);
-        if (response.menu[0]?.weekStartDate) {
-          setWeekStartDate(response.menu[0].weekStartDate);
-        }
+      const response = await adminApi.getMenu(targetWeek);
+      if (!response?.success) {
+        setMenu(buildEmptyMenu());
+        setError(response?.message || 'Failed to load menu');
+        return;
       }
+
+      const menuMap = new Map((response.menu || []).map((m: MenuItem) => [m.day, m]));
+      const mappedMenu = days.map(day => ({
+        day,
+        breakfast: (menuMap.get(day) as MenuItem)?.breakfast || '',
+        lunch: (menuMap.get(day) as MenuItem)?.lunch || '',
+        dinner: (menuMap.get(day) as MenuItem)?.dinner || '',
+      }));
+      setMenu(mappedMenu);
     } catch (err) {
+      setMenu(buildEmptyMenu());
       console.error('Failed to fetch menu:', err);
+      setError('Failed to load menu');
     } finally {
       setLoading(false);
     }
@@ -82,11 +87,12 @@ export default function AdminMenu() {
 
       if (response.success) {
         setSuccess('Menu updated successfully!');
+        await fetchMenu(weekStartDate);
       } else {
         setError(response.message || 'Failed to update menu');
       }
-    } catch (err) {
-      setError('Failed to save menu');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to save menu');
     } finally {
       setSaving(false);
     }
@@ -153,7 +159,7 @@ export default function AdminMenu() {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-32">Day</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">🌅 Breakfast</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">☀️ Lunch</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700"> Dinner</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">🌙 Dinner</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -229,7 +235,7 @@ export default function AdminMenu() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1"> Dinner</label>
+                  <label className="block text-xs text-slate-500 mb-1">🌙 Dinner</label>
                   <input
                     type="text"
                     value={item.dinner}

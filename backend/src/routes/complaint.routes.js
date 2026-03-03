@@ -4,7 +4,11 @@ const Complaint = require('../models/Complaint');
 const Student = require('../models/Student');
 const User = require('../models/User');
 const Application = require('../models/Application');
+const Allocation = require('../models/Allocation');
+const Room = require('../models/Room');
+const Hostel = require('../models/Hostel');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const { sequelize } = require('../config/database');
 
 let complaintSchemaReady = false;
 
@@ -14,30 +18,71 @@ const categoryToStaffRole = {
   MAINTENANCE: 'CARETAKER'
 };
 
-const canViewComplaint = (complaint, reqUser, studentId) => {
+const canViewComplaint = async (complaint, reqUser, studentId = null) => {
   const complaintWardenId = complaint.assignedById !== null && complaint.assignedById !== undefined ? Number(complaint.assignedById) : null;
   const currentUserId = reqUser?.id !== null && reqUser?.id !== undefined ? Number(reqUser.id) : null;
   const complaintStudentId = complaint.StudentId !== null && complaint.StudentId !== undefined ? Number(complaint.StudentId) : null;
   const currentStudentId = studentId !== null && studentId !== undefined ? Number(studentId) : null;
 
   if (reqUser.role === 'ADMIN') return true;
-  if (reqUser.role === 'WARDEN') return complaintWardenId === currentUserId || complaintWardenId === null;
+  
+  if (reqUser.role === 'WARDEN') {
+    // Check if this warden is assigned to the complaint
+    if (complaintWardenId === currentUserId) return true;
+    
+    // Check if the student is in one of this warden's hostels
+    try {
+      const wardenHostels = await Hostel.findAll({
+        where: { wardenId: currentUserId },
+        attributes: ['name']
+      });
+      
+      if (wardenHostels.length === 0) return false;
+      
+      const hostelNames = wardenHostels.map(h => h.name);
+      
+      const allocation = await Allocation.findOne({
+        where: { StudentId: complaintStudentId, status: 'ACTIVE' },
+        include: [{
+          model: Room,
+          where: { blockName: hostelNames },
+          attributes: ['blockName']
+        }]
+      });
+      
+      return allocation !== null;
+    } catch (error) {
+      console.error('Error checking warden access:', error);
+      return false;
+    }
+  }
+  
   if (reqUser.role === 'STAFF') return complaint.assignedStaffRole === reqUser.staffRole;
   if (reqUser.role === 'STUDENT') return complaintStudentId === currentStudentId;
   return false;
 };
 
-const findAssignedWardenId = async (studentId) => {
-  const wardens = await User.findAll({
-    where: { role: 'WARDEN', isActive: true },
-    attributes: ['id'],
-    order: [['id', 'ASC']]
-  });
+// Find the warden assigned to a student's hostel
+const findWardenForStudent = async (studentId) => {
+  try {
+    // Get the student's active allocation
+    const allocation = await Allocation.findOne({
+      where: { StudentId: studentId, status: 'ACTIVE' },
+      include: [{ model: Room, attributes: ['blockName'] }]
+    });
 
-  if (wardens.length === 0) return null;
+    if (!allocation || !allocation.Room) return null;
 
-  const index = studentId ? studentId % wardens.length : 0;
-  return wardens[index].id;
+    // Find the hostel by blockName and get its warden
+    const hostel = await Hostel.findOne({
+      where: { name: allocation.Room.blockName }
+    });
+
+    return hostel?.wardenId || null;
+  } catch (error) {
+    console.error('Error finding warden for student:', error);
+    return null;
+  }
 };
 
 const getStudentForRequest = async (reqUser) => {
@@ -76,7 +121,9 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Complete Apply Hostel form before raising complaints.' });
     }
 
-    const assignedWardenId = await findAssignedWardenId(student.id);
+    // Find the warden assigned to the student's hostel
+    const assignedWardenId = await findWardenForStudent(student.id);
+    
     const complaint = await Complaint.create({
       StudentId: student.id,
       message: message.trim(),
@@ -107,9 +154,42 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT', 'STAFF
       }
       complaints = complaints.filter((c) => Number(c.StudentId) === Number(student.id));
     }
+    
     if (req.user.role === 'WARDEN') {
-      complaints = complaints.filter((c) => c.assignedById === null || Number(c.assignedById) === Number(req.user.id));
+      // Get all hostels assigned to this warden
+      const wardenHostels = await Hostel.findAll({
+        where: { wardenId: req.user.id },
+        attributes: ['name']
+      });
+      
+      const hostelNames = wardenHostels.map(h => h.name);
+      
+      if (hostelNames.length === 0) {
+        // Warden has no hostels assigned, show no complaints
+        complaints = [];
+      } else {
+        // Get all active allocations for students in these hostels
+        const allocations = await Allocation.findAll({
+          where: { status: 'ACTIVE' },
+          include: [{
+            model: Room,
+            where: { blockName: hostelNames },
+            attributes: ['blockName']
+          }],
+          attributes: ['StudentId']
+        });
+        
+        const studentIds = allocations.map(a => a.StudentId);
+        
+        // Filter complaints to only show those from students in these hostels
+        // Also show complaints assigned to this warden
+        complaints = complaints.filter((c) => 
+          studentIds.includes(Number(c.StudentId)) || 
+          Number(c.assignedById) === Number(req.user.id)
+        );
+      }
     }
+    
     if (req.user.role === 'STAFF') {
       complaints = complaints.filter((c) => c.assignedStaffRole === req.user.staffRole);
     }
@@ -132,7 +212,7 @@ router.put('/:id/assign', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async 
     if (req.user.role === 'WARDEN') {
       complaint.assignedById = req.user.id;
     } else if (!complaint.assignedById) {
-      complaint.assignedById = await findAssignedWardenId(complaint.StudentId);
+      complaint.assignedById = await findWardenForStudent(complaint.StudentId);
     }
     complaint.status = complaint.status === 'PENDING' ? 'IN_PROGRESS' : complaint.status;
     await complaint.save();
@@ -155,7 +235,9 @@ router.put('/:id/status', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STAFF'
       const student = await getStudentForRequest(req.user);
       studentId = student?.id;
     }
-    if (!canViewComplaint(complaint, req.user, studentId)) {
+    
+    const canView = await canViewComplaint(complaint, req.user, studentId);
+    if (!canView) {
       return res.status(403).json({ success: false, message: 'You cannot update this complaint.' });
     }
 

@@ -12,6 +12,7 @@ export interface Room {
   blockName: string;
   gender: 'MALE' | 'FEMALE';
   amenities: string;
+  hostelId?: number | string | null;
 }
 
 export type RoomType = 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'FOUR_BED' | 'FIVE_BED' | 'EIGHT_BED' | 'DORMITORY';

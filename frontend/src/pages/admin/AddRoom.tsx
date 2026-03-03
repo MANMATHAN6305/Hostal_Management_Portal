@@ -1,33 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { roomsApi } from '@/lib/api';
+import { roomsApi, adminApi } from '@/lib/api';
 
-// Gender-based hostel names
-const maleHostels = [
-  { value: 'Sapphire', label: 'Sapphire (282 four-bedded rooms)' },
-  { value: 'Emerald', label: 'Emerald (284 four-bedded rooms)' },
-  { value: 'Ruby', label: 'Ruby (237 rooms - mixed)' },
-  { value: 'Diamond', label: 'Diamond (180 rooms - mixed)' },
-  { value: 'Coral', label: 'Coral (52 rooms - AC)' },
-  { value: 'Pearl', label: 'Pearl (138 four-bedded rooms)' },
-];
-
-const femaleHostels = [
-  { value: 'Ganga', label: 'Ganga (132 rooms - mixed)' },
-  { value: 'Yamuna', label: 'Yamuna (99 rooms - mixed)' },
-  { value: 'Narmadha', label: 'Narmadha (128 rooms - mixed)' },
-  { value: 'Cauvery', label: 'Cauvery (126 rooms - mixed)' },
-  { value: 'North Bhavani', label: 'North Bhavani (72 rooms - mixed)' },
-  { value: 'South Bhavani', label: 'South Bhavani (72 rooms - mixed)' },
-  { value: 'Old Bhavani', label: 'Old Bhavani (9 rooms - special)' },
-];
+interface Hostel {
+  id: number;
+  name: string;
+  gender: 'MALE' | 'FEMALE';
+}
 
 export default function AddRoom() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [hostels, setHostels] = useState<Hostel[]>([]);
   const [formData, setFormData] = useState({
     roomNumber: '',
     roomType: 'SINGLE',
@@ -39,6 +26,19 @@ export default function AddRoom() {
     amenities: '',
     gender: 'MALE',
   });
+
+  useEffect(() => {
+    fetchHostels();
+  }, []);
+
+  const fetchHostels = async () => {
+    try {
+      const data = await adminApi.getHostels();
+      setHostels(data.hostels || []);
+    } catch (error) {
+      console.error('Failed to fetch hostels:', error);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -53,7 +53,7 @@ export default function AddRoom() {
 
   // Get hostel options based on selected gender
   const getHostelOptions = () => {
-    return formData.gender === 'MALE' ? maleHostels : femaleHostels;
+    return hostels.filter(h => h.gender === formData.gender);
   };
 
   // Auto-calculate capacity based on room type
@@ -142,7 +142,7 @@ export default function AddRoom() {
                 >
                   <option value="">Select Hostel Name</option>
                   {getHostelOptions().map(hostel => (
-                    <option key={hostel.value} value={hostel.value}>{hostel.label}</option>
+                    <option key={hostel.id} value={hostel.name}>{hostel.name}</option>
                   ))}
                 </select>
               </div>

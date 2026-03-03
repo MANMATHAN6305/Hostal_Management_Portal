@@ -39,11 +39,22 @@ async function migrate() {
       console.log('Users.phone already exists');
     }
 
+    const hasGender = await hasColumn('Users', 'gender');
+    if (!hasGender) {
+      await sequelize.query(`
+        ALTER TABLE \`Users\`
+        ADD COLUMN \`gender\` ENUM('MALE', 'FEMALE') NULL AFTER \`phone\`;
+      `);
+      console.log('Added Users.gender');
+    } else {
+      console.log('Users.gender already exists');
+    }
+
     const hasGoogleId = await hasColumn('Users', 'googleId');
     if (!hasGoogleId) {
       await sequelize.query(`
         ALTER TABLE \`Users\`
-        ADD COLUMN \`googleId\` VARCHAR(100) NULL AFTER \`phone\`;
+        ADD COLUMN \`googleId\` VARCHAR(100) NULL AFTER \`gender\`;
       `);
       console.log('Added Users.googleId');
     } else {

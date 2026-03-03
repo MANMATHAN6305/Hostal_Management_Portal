@@ -160,18 +160,44 @@ router.delete('/complaints/:id', verifyToken, isAdmin, async (req, res) => {
 
 // ==================== MENU MANAGEMENT ====================
 
-// GET /api/admin/menu - Get all menu items
+// GET /api/admin/menu - Get menu items for a week (requested or latest)
 router.get('/menu', verifyToken, isAdmin, async (req, res) => {
   try {
+    const { weekStartDate } = req.query;
+
+    if (weekStartDate && !/^\d{4}-\d{2}-\d{2}$/.test(weekStartDate)) {
+      return res.status(400).json({
+        success: false,
+        message: 'weekStartDate must be in YYYY-MM-DD format'
+      });
+    }
+
+    let targetWeek = weekStartDate || null;
+
+    if (!targetWeek) {
+      const latestWeek = await Menu.findOne({
+        attributes: ['weekStartDate'],
+        order: [['weekStartDate', 'DESC']]
+      });
+      targetWeek = latestWeek?.weekStartDate || null;
+    }
+
+    if (!targetWeek) {
+      return res.json({
+        success: true,
+        weekStartDate: null,
+        menu: []
+      });
+    }
+
     const menu = await Menu.findAll({
-      order: [
-        ['weekStartDate', 'DESC'],
-        ['day', 'ASC']
-      ]
+      where: { weekStartDate: targetWeek },
+      order: [['day', 'ASC']]
     });
 
     res.json({
       success: true,
+      weekStartDate: targetWeek,
       menu: menu
     });
   } catch (error) {
@@ -195,6 +221,24 @@ router.post('/menu', verifyToken, isAdmin, async (req, res) => {
       });
     }
 
+    // Validate date format (should be YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStartDate)) {
+      return res.status(400).json({
+        success: false,
+        message: 'weekStartDate must be in YYYY-MM-DD format'
+      });
+    }
+
+    // Validate menuItems have required fields
+    for (const item of menuItems) {
+      if (!item.day || !['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].includes(item.day)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid day value: ${item.day}`
+        });
+      }
+    }
+
     // Delete existing menu for this week
     await Menu.destroy({
       where: { weekStartDate }
@@ -208,7 +252,6 @@ router.post('/menu', verifyToken, isAdmin, async (req, res) => {
         day: item.day,
         breakfast: item.breakfast || '',
         lunch: item.lunch || '',
-        snacks: item.snacks || '',
         dinner: item.dinner || ''
       });
       createdItems.push(menuItem);
@@ -220,10 +263,12 @@ router.post('/menu', verifyToken, isAdmin, async (req, res) => {
       menu: createdItems
     });
   } catch (error) {
-    console.error('Create menu error:', error);
+    console.error('Create menu error:', error.message);
+    console.error('Error details:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Server error creating menu' 
+      message: 'Server error creating menu',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -231,7 +276,7 @@ router.post('/menu', verifyToken, isAdmin, async (req, res) => {
 // PUT /api/admin/menu/:id - Update single menu item
 router.put('/menu/:id', verifyToken, isAdmin, async (req, res) => {
   try {
-    const { breakfast, lunch, snacks, dinner } = req.body;
+    const { breakfast, lunch, dinner } = req.body;
     
     const menuItem = await Menu.findByPk(req.params.id);
     
@@ -244,7 +289,6 @@ router.put('/menu/:id', verifyToken, isAdmin, async (req, res) => {
 
     if (breakfast !== undefined) menuItem.breakfast = breakfast;
     if (lunch !== undefined) menuItem.lunch = lunch;
-    if (snacks !== undefined) menuItem.snacks = snacks;
     if (dinner !== undefined) menuItem.dinner = dinner;
     
     await menuItem.save();

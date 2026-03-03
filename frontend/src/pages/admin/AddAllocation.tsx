@@ -9,13 +9,32 @@ import type { Room, Student } from '@/types';
 type ApiHostel = {
   id: number;
   name: string;
+  blockCode?: string | null;
   gender: 'MALE' | 'FEMALE' | 'COED';
+  totalRooms?: number;
 };
 
 type HostelOption = {
   value: string;
+  hostelId: number | null;
   name: string;
+  label: string;
+  availableRooms: number;
+  availableBeds: number;
 };
+
+const normalizeText = (value: string | null | undefined) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
+const stripBlockWord = (value: string | null | undefined) =>
+  String(value || '')
+    .replace(/\bblock\b/gi, '')
+    .trim();
+
+const getFreeBeds = (room: Room) =>
+  Math.max(0, Number(room.capacity || 0) - Number(room.occupied || 0));
 
 export default function AddAllocation() {
   const navigate = useNavigate();
@@ -61,9 +80,7 @@ export default function AddAllocation() {
           ? hostelsData.value.hostels
           : [];
 
-      setRooms(roomsList.filter((r: Room) =>
-        r.status !== 'MAINTENANCE' && (r.occupied || 0) < (r.capacity || 1)
-      ));
+      setRooms(roomsList);
       setStudents(studentsList);
       setHostels(hostelsList);
     } catch (error) {
@@ -78,11 +95,11 @@ export default function AddAllocation() {
       return;
     }
     setLoading(true);
-    
+
     try {
       await allocationsApi.create({
-        studentId: parseInt(formData.studentId),
-        roomId: parseInt(formData.roomId),
+        studentId: parseInt(formData.studentId, 10),
+        roomId: parseInt(formData.roomId, 10),
         academicYear: formData.academicYear,
         semester: formData.semester,
         status: formData.status,
@@ -100,11 +117,11 @@ export default function AddAllocation() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const selectedStudent = useMemo(
-    () => students.find((s) => s.id === parseInt(formData.studentId)),
+    () => students.find((s) => s.id === parseInt(formData.studentId, 10)),
     [formData.studentId, students]
   );
 
@@ -116,7 +133,6 @@ export default function AddAllocation() {
     return '';
   }, [selectedStudent]);
 
-  // Auto derive gender from selected student
   useEffect(() => {
     setFormData((prev) => {
       if (prev.gender === selectedStudentGender) return prev;
@@ -124,35 +140,112 @@ export default function AddAllocation() {
     });
   }, [selectedStudentGender]);
 
-  const filteredHostels: HostelOption[] = useMemo(() => {
+  const availableRooms = useMemo(
+    () =>
+      rooms.filter(
+        (room) => room.status !== 'MAINTENANCE' && getFreeBeds(room) > 0
+      ),
+    [rooms]
+  );
+
+  const resolveRoomHostel = useMemo(() => {
+    const hostelsById = new Map(hostels.map((h) => [String(h.id), h]));
+    const hostelsByCode = new Map(
+      hostels
+        .filter((h) => h.blockCode)
+        .map((h) => [normalizeText(h.blockCode), h])
+    );
+    const hostelsByName = hostels.map((h) => ({
+      hostel: h,
+      fullNameKey: normalizeText(h.name),
+      coreNameKey: normalizeText(stripBlockWord(h.name))
+    }));
+
+    return (room: Room) => {
+      const roomHostelId = room.hostelId !== undefined && room.hostelId !== null ? String(room.hostelId) : '';
+      if (roomHostelId && hostelsById.has(roomHostelId)) {
+        const hostel = hostelsById.get(roomHostelId)!;
+        return { key: `id:${hostel.id}`, hostelId: hostel.id, name: hostel.name };
+      }
+
+      const roomCode = normalizeText((room.roomNumber || '').split('-')[0]);
+      if (roomCode && hostelsByCode.has(roomCode)) {
+        const hostel = hostelsByCode.get(roomCode)!;
+        return { key: `id:${hostel.id}`, hostelId: hostel.id, name: hostel.name };
+      }
+
+      const roomBlockKey = normalizeText(room.blockName);
+      if (roomBlockKey) {
+        const matchedByName = hostelsByName.find(
+          ({ fullNameKey, coreNameKey }) =>
+            roomBlockKey === fullNameKey ||
+            roomBlockKey === coreNameKey ||
+            roomBlockKey.includes(coreNameKey) ||
+            coreNameKey.includes(roomBlockKey)
+        );
+
+        if (matchedByName) {
+          return {
+            key: `id:${matchedByName.hostel.id}`,
+            hostelId: matchedByName.hostel.id,
+            name: matchedByName.hostel.name
+          };
+        }
+      }
+
+      const fallbackName = room.blockName || (room.roomNumber || '').split('-')[0] || 'Unknown Hostel';
+      const fallbackKey = roomBlockKey ? `block:${roomBlockKey}` : `room:${room.id}`;
+      return { key: fallbackKey, hostelId: null, name: fallbackName };
+    };
+  }, [hostels]);
+
+  const hostelOptions: HostelOption[] = useMemo(() => {
     if (!formData.gender) return [];
 
-    if (hostels.length > 0) {
-      return hostels
-        .filter((hostel) => hostel.gender === formData.gender || hostel.gender === 'COED')
-        .map((hostel) => ({
-          value: `hostel-${hostel.id}`,
-          name: hostel.name
-        }));
+    const grouped = new Map<string, HostelOption>();
+
+    for (const room of availableRooms) {
+      if (room.gender !== formData.gender) continue;
+
+      const resolved = resolveRoomHostel(room);
+      const freeBeds = getFreeBeds(room);
+
+      if (!grouped.has(resolved.key)) {
+        grouped.set(resolved.key, {
+          value: resolved.key,
+          hostelId: resolved.hostelId,
+          name: resolved.name,
+          label: resolved.name,
+          availableRooms: 0,
+          availableBeds: 0
+        });
+      }
+
+      const current = grouped.get(resolved.key)!;
+      current.availableRooms += 1;
+      current.availableBeds += freeBeds;
     }
 
-    const names = Array.from(
-      new Set(
-        rooms
-          .filter((room) => room.gender === formData.gender)
-          .map((room) => room.blockName)
-      )
-    );
-    return names.map((name) => ({ value: `block-${name}`, name }));
-  }, [formData.gender, hostels, rooms]);
+    return Array.from(grouped.values())
+      .map((option) => ({
+        ...option,
+        label: `${option.name} (${option.availableRooms} rooms, ${option.availableBeds} beds available)`
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [availableRooms, formData.gender, resolveRoomHostel]);
 
-  const selectedHostel = filteredHostels.find((hostel) => hostel.value === formData.hostelId);
+  const selectedHostel = useMemo(
+    () => hostelOptions.find((h) => h.value === formData.hostelId),
+    [formData.hostelId, hostelOptions]
+  );
 
-  const filteredRooms = rooms.filter((room) => {
-    const matchesGender = room.gender === formData.gender;
-    const matchesHostel = !selectedHostel || room.blockName === selectedHostel.name;
-    return matchesGender && matchesHostel;
-  });
+  const filteredRooms = useMemo(() => {
+    if (!formData.gender || !formData.hostelId) return [];
+
+    return availableRooms
+      .filter((room) => room.gender === formData.gender)
+      .filter((room) => resolveRoomHostel(room).key === formData.hostelId);
+  }, [availableRooms, formData.gender, formData.hostelId, resolveRoomHostel]);
 
   const currentYear = new Date().getFullYear();
   const academicYears = [
@@ -160,7 +253,6 @@ export default function AddAllocation() {
     `${currentYear + 1}-${currentYear + 2}`,
     `${currentYear - 1}-${currentYear}`
   ];
-
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -180,7 +272,7 @@ export default function AddAllocation() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
               >
                 <option value="">Select a student</option>
-                {students.map(student => (
+                {students.map((student) => (
                   <option key={student.id} value={student.id}>
                     {student.firstName} {student.lastName} - {student.studentId} ({student.department})
                   </option>
@@ -189,35 +281,20 @@ export default function AddAllocation() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Student Gender</label>
-              <input
-                type="text"
-                value={formData.gender || 'Not Set'}
-                readOnly
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-gray-100 text-slate-700"
-              />
-              {formData.studentId && !formData.gender && (
-                <p className="text-sm text-amber-600 mt-1">
-                  Selected student gender is not set. Please update the student profile first.
-                </p>
-              )}
-            </div>
-
-            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Hostel *</label>
               <Select
                 name="hostelId"
-                value={selectedHostel ? { value: selectedHostel.value, label: selectedHostel.name } : null}
+                value={selectedHostel ? { value: selectedHostel.value, label: selectedHostel.label } : null}
                 onChange={(option) =>
                   setFormData((prev) => ({
                     ...prev,
-                    hostelId: option ? option.value : '',
+                    hostelId: option ? String(option.value) : '',
                     roomId: ''
                   }))
                 }
-                options={filteredHostels.map((hostel) => ({
+                options={hostelOptions.map((hostel) => ({
                   value: hostel.value,
-                  label: hostel.name
+                  label: hostel.label
                 }))}
                 isClearable
                 isSearchable
@@ -225,8 +302,10 @@ export default function AddAllocation() {
                 classNamePrefix="react-select"
                 isDisabled={!formData.gender}
               />
-              {formData.studentId && formData.gender && filteredHostels.length === 0 && (
-                <p className="text-sm text-amber-600 mt-1">No hostels available for this gender.</p>
+              {formData.studentId && formData.gender && hostelOptions.length === 0 && (
+                <p className="text-sm text-amber-600 mt-1">
+                  No hostels with available rooms found for this student's gender.
+                </p>
               )}
             </div>
 
@@ -234,16 +313,20 @@ export default function AddAllocation() {
               <label className="block text-sm font-medium text-slate-700 mb-1">Room *</label>
               <Select
                 name="roomId"
-                value={filteredRooms
-                  .map((room) => ({
-                    value: room.id,
-                    label: `Room ${room.roomNumber} - ${room.blockName} (${room.roomType}, ${(room.capacity || 0) - (room.occupied || 0)} of ${room.capacity} beds available)`
-                  }))
-                  .find((opt) => opt.value === parseInt(formData.roomId)) || null}
-                onChange={option => setFormData(prev => ({ ...prev, roomId: option ? option.value.toString() : '' }))}
+                value={
+                  filteredRooms
+                    .map((room) => ({
+                      value: room.id,
+                      label: `Room ${room.roomNumber} - ${room.blockName} (${room.roomType}, ${getFreeBeds(room)} of ${room.capacity} beds available)`
+                    }))
+                    .find((opt) => opt.value === parseInt(formData.roomId, 10)) || null
+                }
+                onChange={(option) =>
+                  setFormData((prev) => ({ ...prev, roomId: option ? option.value.toString() : '' }))
+                }
                 options={filteredRooms.map((room) => ({
                   value: room.id,
-                  label: `Room ${room.roomNumber} - ${room.blockName} (${room.roomType}, ${(room.capacity || 0) - (room.occupied || 0)} of ${room.capacity} beds available)`
+                  label: `Room ${room.roomNumber} - ${room.blockName} (${room.roomType}, ${getFreeBeds(room)} of ${room.capacity} beds available)`
                 }))}
                 isClearable
                 isSearchable
@@ -252,7 +335,9 @@ export default function AddAllocation() {
                 isDisabled={!selectedHostel}
               />
               {selectedHostel && filteredRooms.length === 0 && (
-                <p className="text-sm text-amber-600 mt-1">No rooms with available beds found for this gender.</p>
+                <p className="text-sm text-amber-600 mt-1">
+                  No rooms with available beds found in this hostel.
+                </p>
               )}
             </div>
 
@@ -266,8 +351,10 @@ export default function AddAllocation() {
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
                 >
-                  {academicYears.map(year => (
-                    <option key={year} value={year}>{year}</option>
+                  {academicYears.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
                   ))}
                 </select>
               </div>

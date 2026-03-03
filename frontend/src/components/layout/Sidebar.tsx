@@ -6,17 +6,21 @@ const navByRole: Record<string, NavItem[]> = {
   ADMIN: [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/students', label: 'Students' },
+    { href: '/wardens', label: 'Wardens' },
+    { href: '/hostels', label: 'Hostels' },
     { href: '/rooms', label: 'Rooms' },
     { href: '/allocations', label: 'Allocations' },
     { href: '/attendance', label: 'Attendance' },
-    { href: '/menu', label: 'Update Weekly Menu' }
+    { href: '/menu', label: 'Update Weekly Menu' },
+    { href: '/admin-messages', label: 'Messages' }
   ],
   WARDEN: [
     { href: '/warden/dashboard', label: 'Dashboard' },
-    { href: '/warden/applications', label: 'Applications' },
+    { href: '/warden/students', label: 'Students List' },
     { href: '/warden/requests', label: 'Requests' },
     { href: '/warden/complaints', label: 'Complaints' },
-    { href: '/warden/attendance', label: 'Attendance' }
+    { href: '/warden/attendance', label: 'Attendance' },
+    { href: '/warden/messages', label: 'Messages' }
   ],
   STAFF: [
     { href: '/staff/dashboard', label: 'Dashboard' },

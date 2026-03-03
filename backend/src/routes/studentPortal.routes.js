@@ -145,46 +145,44 @@ router.get('/room', verifyToken, async (req, res) => {
 // GET /api/student/menu - Get weekly menu
 router.get('/menu', verifyToken, async (req, res) => {
   try {
-    // Get current week's start date (Monday)
     const today = new Date();
     const dayOfWeek = today.getDay();
     const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const weekStart = new Date(today.setDate(diff));
-    weekStart.setHours(0, 0, 0, 0);
+    const monday = new Date(today.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
 
-    const menu = await Menu.findAll({
-      where: {
-        weekStartDate: {
-          [Op.gte]: weekStart.toISOString().split('T')[0]
-        }
-      },
-      order: [
-        ['weekStartDate', 'ASC'],
-        ['day', 'ASC']
-      ]
+    let targetWeek = monday.toISOString().split('T')[0];
+
+    let menu = await Menu.findAll({
+      where: { weekStartDate: targetWeek },
+      order: [['day', 'ASC']]
     });
 
-    // If no menu found for current week, get the latest menu
     if (menu.length === 0) {
-      const latestMenu = await Menu.findAll({
-        order: [
-          ['weekStartDate', 'DESC'],
-          ['day', 'ASC']
-        ],
-        limit: 7
+      const latestWeek = await Menu.findOne({
+        attributes: ['weekStartDate'],
+        order: [['weekStartDate', 'DESC']]
       });
-      
-      return res.json({
-        success: true,
-        menu: latestMenu,
-        weekStart: latestMenu[0]?.weekStartDate || null
+
+      if (!latestWeek?.weekStartDate) {
+        return res.json({
+          success: true,
+          menu: [],
+          weekStart: null
+        });
+      }
+
+      targetWeek = latestWeek.weekStartDate;
+      menu = await Menu.findAll({
+        where: { weekStartDate: targetWeek },
+        order: [['day', 'ASC']]
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
-      menu: menu,
-      weekStart: weekStart.toISOString().split('T')[0]
+      menu,
+      weekStart: targetWeek
     });
   } catch (error) {
     console.error('Get menu error:', error);

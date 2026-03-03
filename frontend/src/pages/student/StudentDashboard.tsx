@@ -1,7 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/Card';
+import { Card, CardContent, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { studentApi } from '@/lib/api';
+
+const QuickActionButton = ({ icon, label, href }: { icon: string; label: string; href: string }) => (
+  <Link to={href} className="group">
+    <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-gray-200 text-center">
+      <div className="text-3xl mb-2">{icon}</div>
+      <p className="font-semibold text-gray-900 text-sm">{label}</p>
+    </div>
+  </Link>
+);
+
+const InfoField = ({ label, value }: { label: string; value: string | number | undefined }) => (
+  <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+    <span className="text-sm text-gray-600">{label}</span>
+    <span className="font-semibold text-gray-900">{value || 'N/A'}</span>
+  </div>
+);
 
 export default function StudentDashboard() {
   const [dashboard, setDashboard] = useState<any>(null);
@@ -41,95 +58,83 @@ export default function StudentDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-700" />
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
       </div>
     );
   }
 
   if (error) {
-    return <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">{error}</div>;
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl shadow-sm">
+        {error}
+      </div>
+    );
   }
 
   const student = dashboard?.student;
   const room = dashboard?.room;
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800 text-white rounded-xl p-6">
-        <h1 className="text-2xl font-bold">
+    <div className="space-y-8">
+      {/* Welcome Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
+        <h1 className="text-3xl font-bold mb-2">
           Welcome, {student?.firstName} {student?.lastName}
         </h1>
-        <p className="text-gray-300 mt-1">{student?.department} - Year {student?.year}</p>
-        <p className="text-gray-400 text-sm mt-1">Student ID: {student?.studentId}</p>
+        <p className="text-blue-100">
+          {student?.department} • Year {student?.year} • ID: {student?.studentId}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Link to="/student/apply" className="bg-gray-700 text-white rounded-xl p-4">Apply Hostel</Link>
-        <Link to="/student/room" className="bg-gray-700 text-white rounded-xl p-4">My Room</Link>
-        <Link to="/student/complaints" className="bg-gray-700 text-white rounded-xl p-4">Complaints</Link>
-        <Link to="/student/menu" className="bg-gray-700 text-white rounded-xl p-4">Weekly Menu</Link>
+      {/* Quick Actions */}
+      <div>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <QuickActionButton icon="🏫" label="Apply Hostel" href="/student/apply" />
+          <QuickActionButton icon="🏠" label="My Room" href="/student/room" />
+          <QuickActionButton icon="📝" label="My Complaints" href="/student/complaints" />
+          <QuickActionButton icon="🍽️" label="Meal Menu" href="/student/menu" />
+        </div>
       </div>
 
+      {/* Profile and Room Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
+          <CardTitle className="mb-4">👤 Profile Information</CardTitle>
           <CardContent>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Profile</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Name</span><span>{student?.firstName} {student?.lastName}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Email</span><span>{student?.email}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Phone</span><span>{student?.phone || 'N/A'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Gender</span><span>{student?.gender}</span></div>
+            <div className="space-y-0">
+              <InfoField label="Full Name" value={`${student?.firstName} ${student?.lastName}`} />
+              <InfoField label="Email" value={student?.email} />
+              <InfoField label="Phone" value={student?.phone} />
+              <InfoField label="Gender" value={student?.gender} />
+              <InfoField label="Department" value={student?.department} />
+              <InfoField label="Year" value={`Year ${student?.year}`} />
             </div>
           </CardContent>
         </Card>
 
         <Card>
+          <CardTitle className="mb-4">🏠 Room Information</CardTitle>
           <CardContent>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Room</h2>
             {room ? (
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500">Room Number</span><span>{room.roomNumber}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Block</span><span>{room.blockName}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Type</span><span>{room.roomType}</span></div>
+              <div className="space-y-0">
+                <InfoField label="Room Number" value={room.roomNumber} />
+                <InfoField label="Block/Building" value={room.blockName} />
+                <InfoField label="Room Type" value={room.roomType} />
+                <InfoField label="Occupancy" value={`${room.currentOccupancy || 0}/${room.capacity || '-'}`} />
+                <InfoField label="Status" value={room.status || 'Allocated'} />
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No room allocated yet.</p>
+              <div className="text-center py-8">
+                <p className="text-gray-600 text-sm mb-3">No room allocated yet</p>
+                <Link to="/student/apply">
+                  <Button size="sm">Apply for Hostel</Button>
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardContent>
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold text-gray-800">Submitted Hostel Applications</h2>
-            <Link to="/student/apply" className="bg-gray-800 text-white px-3 py-2 rounded text-sm">Apply / Update</Link>
-          </div>
-          {applications.length === 0 ? (
-            <p className="text-sm text-gray-500">No hostel application submitted yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {applications.map((app) => (
-                <div key={app.id} className="border rounded p-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="font-medium">{app.fullName} ({app.registerNumber})</span>
-                    <span className="font-semibold">{app.status}</span>
-                  </div>
-                  <p className="text-gray-600">
-                    {app.Hostel?.name || 'Hostel'} | {app.roomType || app.preferredRoomType || 'N/A'} {app.blockName ? `| ${app.blockName}` : ''}
-                  </p>
-                  <p className="text-gray-600">
-                    {app.department} | Year {app.yearOfStudy} | {app.gender}
-                  </p>
-                  <p className="text-gray-600">
-                    Guardian: {app.guardianName} ({app.relationship}) - {app.guardianContactNumber}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

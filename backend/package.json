@@ -8,10 +8,12 @@
     "dev": "nodemon src/index.js",
     "migrate:rooms": "node src/migrations/addRoomColumns.js",
     "migrate:users": "node src/migrations/addUserColumns.js",
+    "migrate:hostels": "node src/migrations/addHostelColumns.js",
     "migrate:applications": "node src/migrations/addApplicationColumns.js",
     "migrate:extensions": "node src/migrations/addExtensionTables.js",
     "migrate:sync": "node src/migrations/syncSchema.js",
     "seed:rooms": "node src/seeds/seedRooms.js",
+    "seed:hostels": "node src/seeds/seedHostels.js",
     "seed:demo": "node src/seeds/seedRooms.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

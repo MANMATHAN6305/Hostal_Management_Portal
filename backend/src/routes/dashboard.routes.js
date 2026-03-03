@@ -25,12 +25,59 @@ router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT',
     }
 
     if (req.user.role === 'WARDEN') {
-      const [pendingRequests, openComplaints, attendanceLogs] = await Promise.all([
+      const today = new Date().toISOString().split('T')[0];
+      const complaintScope = {
+        [Op.or]: [{ assignedById: null }, { assignedById: req.user.id }]
+      };
+
+      const [
+        pendingRequests,
+        approvedRequests,
+        openComplaints,
+        resolvedComplaints,
+        attendanceLogs,
+        totalStudents,
+        allocatedStudents,
+        todayAttendance
+      ] = await Promise.all([
         Request.count({ where: { status: 'PENDING' } }),
-        Complaint.count({ where: { status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] } } }),
-        Attendance.count()
+        Request.count({ where: { status: 'APPROVED' } }),
+        Complaint.count({
+          where: {
+            ...complaintScope,
+            status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] }
+          }
+        }),
+        Complaint.count({
+          where: {
+            ...complaintScope,
+            status: 'RESOLVED'
+          }
+        }),
+        Attendance.count(),
+        Student.count(),
+        Allocation.count({
+          where: { status: 'ACTIVE' },
+          distinct: true,
+          col: 'StudentId'
+        }),
+        Attendance.count({ where: { date: today } })
       ]);
-      return res.json({ success: true, role: 'WARDEN', stats: { pendingRequests, openComplaints, attendanceLogs } });
+
+      return res.json({
+        success: true,
+        role: 'WARDEN',
+        stats: {
+          pendingRequests,
+          openComplaints,
+          attendanceLogs,
+          totalStudents,
+          allocatedStudents,
+          resolvedComplaints,
+          approvedRequests,
+          todayAttendance
+        }
+      });
     }
 
     if (req.user.role === 'STAFF') {

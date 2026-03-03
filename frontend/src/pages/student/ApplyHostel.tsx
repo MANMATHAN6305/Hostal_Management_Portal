@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { studentApi } from '@/lib/api';
-import { Card, CardContent } from '@/components/ui/Card';
+import { Card, CardContent, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
 type ApplicationForm = {
@@ -32,6 +32,53 @@ const initialForm: ApplicationForm = {
   guardianContactNumber: '',
   guardianAddress: ''
 };
+
+const FormInput = ({ label, value, onChange, type = 'text', placeholder = '', required = false }: any) => (
+  <div className="flex flex-col">
+    <label className="text-sm font-medium text-gray-700 mb-2">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <input
+      type={type}
+      className="border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors bg-white"
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+    />
+  </div>
+);
+
+const FormSelect = ({ label, value, onChange, options, required = false }: any) => (
+  <div className="flex flex-col">
+    <label className="text-sm font-medium text-gray-700 mb-2">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <select
+      className="border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors bg-white"
+      value={value}
+      onChange={onChange}
+    >
+      {options.map((opt: any) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  </div>
+);
+
+const FormTextarea = ({ label, value, onChange, placeholder = '', required = false }: any) => (
+  <div className="flex flex-col">
+    <label className="text-sm font-medium text-gray-700 mb-2">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <textarea
+      className="border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors bg-white resize-none"
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      rows={3}
+    />
+  </div>
+);
 
 export default function ApplyHostel() {
   const [applications, setApplications] = useState<any[]>([]);
@@ -179,91 +226,225 @@ export default function ApplyHostel() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Apply Hostel</h1>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Apply for Hostel</h1>
+        <p className="text-gray-600 mt-1">Submit or update your hostel application</p>
+      </div>
 
-      {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded px-4 py-3">{error}</div>}
-      {message && <div className="bg-green-50 text-green-700 border border-green-200 rounded px-4 py-3">{message}</div>}
+      {error && (
+        <div className="bg-red-50 text-red-700 border border-red-200 rounded-xl px-6 py-4 shadow-sm flex items-start gap-3">
+          <span className="text-xl">⚠️</span>
+          <div>{error}</div>
+        </div>
+      )}
+      {message && (
+        <div className="bg-green-50 text-green-700 border border-green-200 rounded-xl px-6 py-4 shadow-sm flex items-start gap-3">
+          <span className="text-xl">✓</span>
+          <div>{message}</div>
+        </div>
+      )}
 
       {!latestApplication || isEditing ? (
         <Card>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-lg">{latestApplication ? 'Edit Submitted Application' : 'Application Form'}</h2>
-              {latestApplication && (
-                <Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>
-                  Cancel
-                </Button>
-              )}
-            </div>
+          <div className="border-b border-gray-200 pb-4 mb-6 flex items-center justify-between">
+            <CardTitle className="mb-0">
+              {latestApplication ? '✏️ Edit Application' : '📋 Application Form'}
+            </CardTitle>
+            {latestApplication && (
+              <Button type="button" variant="ghost" onClick={() => setIsEditing(false)}>
+                Cancel
+              </Button>
+            )}
+          </div>
 
+          <CardContent className="space-y-8">
+            {/* Student Details */}
             <div>
-              <h2 className="font-semibold text-lg mb-3">Basic Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input className="border rounded px-3 py-2" placeholder="Full Name" value={form.fullName} onChange={(e) => onChange('fullName', e.target.value)} />
-                <input className="border rounded px-3 py-2" placeholder="Register Number / Roll Number" value={form.registerNumber} onChange={(e) => onChange('registerNumber', e.target.value)} />
-                <input className="border rounded px-3 py-2" placeholder="Department" value={form.department} onChange={(e) => onChange('department', e.target.value)} />
-                <select className="border rounded px-3 py-2" value={form.yearOfStudy} onChange={(e) => onChange('yearOfStudy', e.target.value)}>
-                  <option value="1">1st Year</option>
-                  <option value="2">2nd Year</option>
-                  <option value="3">3rd Year</option>
-                  <option value="4">4th Year</option>
-                </select>
-                <select className="border rounded px-3 py-2" value={form.gender} onChange={(e) => onChange('gender', e.target.value)}>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
-                <input type="date" className="border rounded px-3 py-2" value={form.dateOfBirth} onChange={(e) => onChange('dateOfBirth', e.target.value)} />
-                <input type="email" className="border rounded px-3 py-2" placeholder="Student Email ID" value={form.studentEmail} onChange={(e) => onChange('studentEmail', e.target.value)} />
-                <input className="border rounded px-3 py-2" placeholder="Mobile Number" value={form.mobileNumber} onChange={(e) => onChange('mobileNumber', e.target.value)} />
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">👤 Student Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormInput 
+                  label="Full Name" 
+                  value={form.fullName} 
+                  onChange={(e: any) => onChange('fullName', e.target.value)} 
+                  placeholder="Enter your full name"
+                  required
+                />
+                <FormInput 
+                  label="Register / Roll Number" 
+                  value={form.registerNumber} 
+                  onChange={(e: any) => onChange('registerNumber', e.target.value)} 
+                  placeholder="e.g., 2021B123"
+                  required
+                />
+                <FormInput 
+                  label="Department" 
+                  value={form.department} 
+                  onChange={(e: any) => onChange('department', e.target.value)} 
+                  placeholder="e.g., Computer Science"
+                  required
+                />
+                <FormSelect 
+                  label="Year of Study" 
+                  value={form.yearOfStudy} 
+                  onChange={(e: any) => onChange('yearOfStudy', e.target.value)}
+                  options={[
+                    { value: '1', label: '1st Year' },
+                    { value: '2', label: '2nd Year' },
+                    { value: '3', label: '3rd Year' },
+                    { value: '4', label: '4th Year' }
+                  ]}
+                  required
+                />
+                <FormSelect 
+                  label="Gender" 
+                  value={form.gender} 
+                  onChange={(e: any) => onChange('gender', e.target.value)}
+                  options={[
+                    { value: 'MALE', label: 'Male' },
+                    { value: 'FEMALE', label: 'Female' },
+                    { value: 'OTHER', label: 'Other' }
+                  ]}
+                  required
+                />
+                <FormInput 
+                  label="Date of Birth" 
+                  type="date"
+                  value={form.dateOfBirth} 
+                  onChange={(e: any) => onChange('dateOfBirth', e.target.value)} 
+                  required
+                />
+                <FormInput 
+                  label="Email Address" 
+                  type="email"
+                  value={form.studentEmail} 
+                  onChange={(e: any) => onChange('studentEmail', e.target.value)} 
+                  placeholder="your.email@example.com"
+                  required
+                />
+                <FormInput 
+                  label="Mobile Number" 
+                  value={form.mobileNumber} 
+                  onChange={(e: any) => onChange('mobileNumber', e.target.value)} 
+                  placeholder="e.g., +91 XXXXX XXXXX"
+                  required
+                />
               </div>
             </div>
 
+            {/* Guardian Details */}
             <div>
-              <h2 className="font-semibold text-lg mb-3">Parent / Guardian Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input className="border rounded px-3 py-2" placeholder="Parent / Guardian Name" value={form.guardianName} onChange={(e) => onChange('guardianName', e.target.value)} />
-                <input className="border rounded px-3 py-2" placeholder="Relationship" value={form.relationship} onChange={(e) => onChange('relationship', e.target.value)} />
-                <input className="border rounded px-3 py-2" placeholder="Contact Number" value={form.guardianContactNumber} onChange={(e) => onChange('guardianContactNumber', e.target.value)} />
-                <textarea className="border rounded px-3 py-2" placeholder="Address" value={form.guardianAddress} onChange={(e) => onChange('guardianAddress', e.target.value)} />
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">👨‍👩‍👧 Guardian Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormInput 
+                  label="Guardian/Parent Name" 
+                  value={form.guardianName} 
+                  onChange={(e: any) => onChange('guardianName', e.target.value)} 
+                  placeholder="Enter guardian's name"
+                  required
+                />
+                <FormInput 
+                  label="Relationship" 
+                  value={form.relationship} 
+                  onChange={(e: any) => onChange('relationship', e.target.value)} 
+                  placeholder="e.g., Father, Mother"
+                  required
+                />
+                <FormInput 
+                  label="Contact Number" 
+                  value={form.guardianContactNumber} 
+                  onChange={(e: any) => onChange('guardianContactNumber', e.target.value)} 
+                  placeholder="e.g., +91 XXXXX XXXXX"
+                  required
+                />
+                <FormTextarea 
+                  label="Address" 
+                  value={form.guardianAddress} 
+                  onChange={(e: any) => onChange('guardianAddress', e.target.value)} 
+                  placeholder="Enter full residential address"
+                  required
+                />
               </div>
             </div>
 
-            <Button onClick={submit} disabled={loading}>
-              {loading ? 'Submitting...' : latestApplication ? 'Update Application' : 'Submit Application'}
-            </Button>
+            {/* Submit Button */}
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <Button 
+                onClick={submit} 
+                disabled={loading}
+                className="flex-grow"
+              >
+                {loading ? 'Submitting...' : latestApplication ? '💾 Update Application' : '📤 Submit Application'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardContent className="space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200 pb-4">
               <div>
-                <h2 className="text-lg font-semibold">{latestApplication.fullName} ({latestApplication.registerNumber})</h2>
-                <p className="text-sm text-gray-600">{latestApplication.department} | Year {latestApplication.yearOfStudy} | {latestApplication.gender}</p>
+                <h2 className="text-xl font-bold text-gray-900">{latestApplication.fullName}</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Reg: {latestApplication.registerNumber} • {latestApplication.department} • Year {latestApplication.yearOfStudy}
+                </p>
               </div>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-800 w-fit">
-                Status: {latestApplication.status}
+              <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+                latestApplication.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                latestApplication.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                latestApplication.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {latestApplication.status}
               </span>
             </div>
 
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setShowDetails((prev) => !prev)}>
-                {showDetails ? 'Hide' : 'View'}
+            <div className="flex gap-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowDetails((prev) => !prev)}
+              >
+                {showDetails ? '👁️‍🗨️ Hide Details' : '👁️ View Details'}
               </Button>
-              <Button type="button" onClick={() => setIsEditing(true)}>
-                Edit
+              <Button 
+                type="button" 
+                onClick={() => setIsEditing(true)}
+              >
+                ✏️ Edit Application
               </Button>
             </div>
 
             {showDetails && (
-              <div className="border rounded p-4 text-sm space-y-1">
-                <p><span className="font-medium">Email:</span> {latestApplication.studentEmail}</p>
-                <p><span className="font-medium">Mobile:</span> {latestApplication.mobileNumber}</p>
-                <p><span className="font-medium">Guardian:</span> {latestApplication.guardianName} ({latestApplication.relationship})</p>
-                <p><span className="font-medium">Guardian Contact:</span> {latestApplication.guardianContactNumber}</p>
-                <p><span className="font-medium">Address:</span> {latestApplication.guardianAddress}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-200 pt-6">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</p>
+                    <p className="text-gray-900 font-medium">{latestApplication.studentEmail}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mobile</p>
+                    <p className="text-gray-900 font-medium">{latestApplication.mobileNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Gender</p>
+                    <p className="text-gray-900 font-medium">{latestApplication.gender}</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Guardian</p>
+                    <p className="text-gray-900 font-medium">{latestApplication.guardianName} ({latestApplication.relationship})</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Guardian Contact</p>
+                    <p className="text-gray-900 font-medium">{latestApplication.guardianContactNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Address</p>
+                    <p className="text-gray-900 font-medium">{latestApplication.guardianAddress}</p>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

@@ -1,11 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
-import { roomsApi } from '@/lib/api';
+import { roomsApi, adminApi } from '@/lib/api';
 import type { Room } from '@/types';
+
+interface Hostel {
+  id: number;
+  name: string;
+  blockCode?: string | null;
+  gender: 'MALE' | 'FEMALE' | 'COED';
+}
+
+interface HostelOption extends Hostel {
+  roomCount: number;
+}
+
+const normalize = (value: string | null | undefined) =>
+  String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const stripBlockWord = (value: string | null | undefined) =>
+  String(value || '').replace(/\bblock\b/gi, '').trim();
+
+const getRoomPrefix = (roomNumber: string | null | undefined) =>
+  normalize(String(roomNumber || '').split('-')[0]);
+
+const roomMatchesHostel = (room: Room, hostel: Hostel) => {
+  const roomHostelId = (room as any).hostelId;
+  if (roomHostelId !== undefined && roomHostelId !== null && Number(roomHostelId) === hostel.id) {
+    return true;
+  }
+
+  const roomBlock = normalize(stripBlockWord(room.blockName));
+  const hostelName = normalize(stripBlockWord(hostel.name));
+  const hostelCode = normalize(hostel.blockCode || '');
+  const roomPrefix = getRoomPrefix(room.roomNumber);
+
+  if (roomBlock && hostelName && (roomBlock === hostelName || roomBlock.includes(hostelName) || hostelName.includes(roomBlock))) {
+    return true;
+  }
+
+  if (hostelCode && roomPrefix && hostelCode === roomPrefix) {
+    return true;
+  }
+
+  return false;
+};
 
 const statusBadgeVariant = (status: string) => {
   switch (status) {
@@ -30,33 +72,29 @@ const formatRoomType = (type: string) => {
   }
 };
 
-// All hostel blocks
-const allHostels = [
-  // Men's Hostels
-  { value: 'Sapphire', label: 'Sapphire', gender: 'MALE' },
-  { value: 'Emerald', label: 'Emerald', gender: 'MALE' },
-  { value: 'Ruby', label: 'Ruby', gender: 'MALE' },
-  { value: 'Diamond', label: 'Diamond', gender: 'MALE' },
-  { value: 'Coral', label: 'Coral (AC)', gender: 'MALE' },
-  { value: 'Pearl', label: 'Pearl', gender: 'MALE' },
-  // Women's Hostels
-  { value: 'Ganga', label: 'Ganga', gender: 'FEMALE' },
-  { value: 'Yamuna', label: 'Yamuna', gender: 'FEMALE' },
-  { value: 'Narmadha', label: 'Narmadha', gender: 'FEMALE' },
-  { value: 'Cauvery', label: 'Cauvery', gender: 'FEMALE' },
-  { value: 'North Bhavani', label: 'North Bhavani', gender: 'FEMALE' },
-  { value: 'South Bhavani', label: 'South Bhavani', gender: 'FEMALE' },
-  { value: 'Old Bhavani', label: 'Old Bhavani', gender: 'FEMALE' },
-];
-
 export default function Rooms() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
+  const [hostels, setHostels] = useState<Hostel[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [genderFilter, setGenderFilter] = useState('ALL');
   const [hostelFilter, setHostelFilter] = useState('ALL');
+
+  const hostelOptions = useMemo(() => {
+    return hostels
+      .filter((hostel) => genderFilter === 'ALL' || hostel.gender === genderFilter || hostel.gender === 'COED')
+      .map((hostel) => {
+        const roomCount = rooms.filter((room) => {
+          if (genderFilter !== 'ALL' && room.gender !== genderFilter) return false;
+          return roomMatchesHostel(room, hostel);
+        }).length;
+        return { ...hostel, roomCount };
+      })
+      .filter((hostel) => hostel.roomCount > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [hostels, rooms, genderFilter]);
 
   // Calculate statistics
   const stats = {
@@ -69,7 +107,7 @@ export default function Rooms() {
   };
 
   useEffect(() => {
-    fetchRooms();
+    fetchRoomsAndHostels();
   }, []);
 
   useEffect(() => {
@@ -82,7 +120,8 @@ export default function Rooms() {
 
     // Apply hostel filter
     if (hostelFilter !== 'ALL') {
-      filtered = filtered.filter(room => room.blockName === hostelFilter);
+      const selectedHostel = hostels.find((h) => String(h.id) === hostelFilter);
+      filtered = selectedHostel ? filtered.filter((room) => roomMatchesHostel(room, selectedHostel)) : [];
     }
     
     // Apply status filter
@@ -118,18 +157,22 @@ export default function Rooms() {
 
   // Get hostels based on gender filter
   const getHostelOptions = () => {
-    if (genderFilter === 'ALL') return allHostels;
-    return allHostels.filter(h => h.gender === genderFilter);
+    return hostelOptions;
   };
 
-  const fetchRooms = async () => {
+  const fetchRoomsAndHostels = async () => {
     try {
-      const data = await roomsApi.getAll();
-      const roomData = Array.isArray(data) ? data : [];
-      setRooms(roomData);
-      setFilteredRooms(roomData);
+      const [roomsData, hostelsData] = await Promise.all([
+        roomsApi.getAll(),
+        adminApi.getHostels()
+      ]);
+      const roomArray = Array.isArray(roomsData) ? roomsData : [];
+      const hostelArray = hostelsData.hostels || [];
+      setRooms(roomArray);
+      setFilteredRooms(roomArray);
+      setHostels(hostelArray);
     } catch (error) {
-      console.error('Failed to fetch rooms:', error);
+      console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
@@ -238,7 +281,9 @@ export default function Rooms() {
               >
                 <option value="ALL">All Blocks</option>
                 {getHostelOptions().map(hostel => (
-                  <option key={hostel.value} value={hostel.value}>{hostel.label}</option>
+                  <option key={hostel.id} value={String(hostel.id)}>
+                    {hostel.name} ({hostel.roomCount} rooms)
+                  </option>
                 ))}
               </select>
               <select
@@ -299,12 +344,7 @@ export default function Rooms() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Occupancy:</span>
-                    <span className="font-medium text-gray-800">
-                      {room.occupied || 0} / {room.capacity || 0} beds
-                      {room.capacity && room.occupied < room.capacity && (
-                        <span className="text-green-600 ml-1">({room.capacity - room.occupied} available)</span>
-                      )}
-                    </span>
+                    <span className="font-medium text-gray-800">{room.occupied || 0} occupied beds</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Fee/Semester:</span>

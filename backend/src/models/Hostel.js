@@ -23,6 +23,14 @@ const Hostel = sequelize.define('Hostel', {
   totalRooms: {
     type: DataTypes.INTEGER,
     defaultValue: 0
+  },
+  wardenId: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
   }
 });
 

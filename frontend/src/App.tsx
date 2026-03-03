@@ -19,6 +19,11 @@ import AdminMenu from './pages/admin/Menu';
 import AdminStaff from './pages/admin/Staff';
 import AdminAttendanceReports from './pages/admin/AttendanceReports';
 import AdminHostels from './pages/admin/Hostels';
+import Wardens from './pages/admin/Wardens';
+import AddWarden from './pages/admin/AddWarden';
+import EditWarden from './pages/admin/EditWarden';
+import WardenDetails from './pages/admin/WardenDetails';
+import AdminMessages from './pages/admin/AdminMessages';
 
 import StudentDashboard from './pages/student/StudentDashboard';
 import MyRoom from './pages/student/MyRoom';
@@ -28,10 +33,11 @@ import ApplyHostel from './pages/student/ApplyHostel';
 import StudentRequests from './pages/student/Requests';
 
 import WardenDashboard from './pages/warden/Dashboard';
-import WardenApplications from './pages/warden/Applications';
+import WardenStudentsList from './pages/warden/StudentsList';
 import WardenRequests from './pages/warden/Requests';
 import WardenComplaints from './pages/warden/Complaints';
 import WardenAttendance from './pages/warden/Attendance';
+import WardenMessages from './pages/warden/Messages';
 
 import StaffDashboard from './pages/staff/Dashboard';
 import StaffComplaints from './pages/staff/Complaints';
@@ -46,12 +52,16 @@ function App() {
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="rooms" element={<Rooms />} />
-          <Route path="rooms/add" element={<AddRoom />} />
-          <Route path="rooms/edit/:id" element={<EditRoom />} />
           <Route path="students" element={<Students />} />
           <Route path="students/add" element={<AddStudent />} />
           <Route path="students/edit/:id" element={<EditStudent />} />
+          <Route path="wardens" element={<Wardens />} />
+          <Route path="wardens/add" element={<AddWarden />} />
+          <Route path="wardens/edit/:id" element={<EditWarden />} />
+          <Route path="wardens/:id" element={<WardenDetails />} />
+          <Route path="rooms" element={<Rooms />} />
+          <Route path="rooms/add" element={<AddRoom />} />
+          <Route path="rooms/edit/:id" element={<EditRoom />} />
           <Route path="allocations" element={<Allocations />} />
           <Route path="allocations/add" element={<AddAllocation />} />
           <Route path="allocations/edit/:id" element={<EditAllocation />} />
@@ -59,6 +69,7 @@ function App() {
           <Route path="staff" element={<AdminStaff />} />
           <Route path="attendance" element={<AdminAttendanceReports />} />
           <Route path="hostels" element={<AdminHostels />} />
+          <Route path="admin-messages" element={<AdminMessages />} />
         </Route>
       </Route>
 
@@ -77,8 +88,9 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['WARDEN']} />}>
         <Route path="/warden" element={<DashboardLayout />}>
           <Route index element={<Navigate to="/warden/dashboard" replace />} />
+          <Route path="messages" element={<WardenMessages />} />
           <Route path="dashboard" element={<WardenDashboard />} />
-          <Route path="applications" element={<WardenApplications />} />
+          <Route path="students" element={<WardenStudentsList />} />
           <Route path="requests" element={<WardenRequests />} />
           <Route path="complaints" element={<WardenComplaints />} />
           <Route path="attendance" element={<WardenAttendance />} />

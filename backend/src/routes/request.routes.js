@@ -4,6 +4,8 @@ const Request = require('../models/Request');
 const Student = require('../models/Student');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
+let requestSchemaReady = false;
+
 const buildRoomChangeDescription = ({ reasonForRoomChange, studentName, rollNumber, currentRoomNumber, targetRoomNumber }) => (
   `Reason: ${reasonForRoomChange}\n` +
   `Student Name: ${studentName}\n` +
@@ -28,8 +30,23 @@ const parseRoomChangeDescription = (description = '') => {
   };
 };
 
+const ensureRequestSchema = async () => {
+  if (requestSchemaReady) return;
+  await Request.sync({ alter: true });
+  requestSchemaReady = true;
+};
+
+const parseDateInput = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+};
+
 router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
   try {
+    await ensureRequestSchema();
+
     const student = await Student.findOne({ where: { email: req.user.email } });
     if (!student) return res.status(404).json({ success: false, message: 'Student not found.' });
 
@@ -41,8 +58,10 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
     const isLeave = type === 'LEAVE';
     const title = String(req.body.title || '').trim();
     const description = String(req.body.description || '').trim();
-    const fromDate = req.body.fromDate || null;
-    const toDate = req.body.toDate || null;
+    const parsedFromDate = parseDateInput(req.body.fromDate);
+    const parsedToDate = parseDateInput(req.body.toDate);
+    const fromDate = parsedFromDate || null;
+    const toDate = parsedToDate || null;
 
     if (isLeave) {
       if (!title || !description || !fromDate || !toDate) {
@@ -51,7 +70,7 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
           message: 'Leave requests require Start Date & Time, End Date & Time, Title, and Description.'
         });
       }
-      if (new Date(fromDate) >= new Date(toDate)) {
+      if (fromDate >= toDate) {
         return res.status(400).json({ success: false, message: 'End Date & Time must be after Start Date & Time.' });
       }
     } else {
@@ -99,6 +118,8 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
 
 router.get('/', verifyToken, authorizeRoles('STUDENT', 'WARDEN', 'ADMIN'), async (req, res) => {
   try {
+    await ensureRequestSchema();
+
     let where = {};
     if (req.user.role === 'STUDENT') {
       const student = await Student.findOne({ where: { email: req.user.email } });
@@ -127,6 +148,8 @@ router.get('/', verifyToken, authorizeRoles('STUDENT', 'WARDEN', 'ADMIN'), async
 
 router.put('/:id/review', verifyToken, authorizeRoles('WARDEN', 'ADMIN'), async (req, res) => {
   try {
+    await ensureRequestSchema();
+
     const request = await Request.findByPk(req.params.id);
     if (!request) return res.status(404).json({ success: false, message: 'Request not found.' });
     if (!['APPROVED', 'REJECTED'].includes(req.body.status)) {

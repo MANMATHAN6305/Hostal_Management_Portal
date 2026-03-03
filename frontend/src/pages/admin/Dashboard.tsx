@@ -1,15 +1,31 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/Card';
+import { Card, CardContent, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { allocationsApi, roomsApi, studentsApi } from '@/lib/api';
 import type { Room } from '@/types';
 
 const quickActions = [
-  { title: 'New Allocation', href: '/allocations/add', color: 'bg-blue-500' },
-  { title: 'Add Student', href: '/students/add', color: 'bg-green-500' },
-  { title: 'Add Room', href: '/rooms/add', color: 'bg-purple-500' },
-  { title: 'Staff', href: '/staff', color: 'bg-orange-500' }
+  { title: 'New Allocation', href: '/allocations/add', icon: '📋', color: 'from-blue-500 to-blue-600' },
+  { title: 'Add Student', href: '/students/add', icon: '👥', color: 'from-green-500 to-green-600' },
+  { title: 'Add Room', href: '/rooms/add', icon: '🏠', color: 'from-purple-500 to-purple-600' },
+  { title: 'Manage Staff', href: '/staff', icon: '👔', color: 'from-orange-500 to-orange-600' }
 ];
+
+const StatCard = ({ label, value, icon, color }: { label: string; value: number; icon: string; color: string }) => (
+  <Card className="relative overflow-hidden">
+    <div className={`absolute inset-0 bg-gradient-to-r ${color} opacity-5`} />
+    <CardContent className="relative">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600 mb-1">{label}</p>
+          <p className="text-3xl font-bold text-gray-900">{value}</p>
+        </div>
+        <span className="text-3xl">{icon}</span>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -55,51 +71,84 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-700" />
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg">
+        <h1 className="text-3xl font-bold mb-2">Welcome back, {userName}</h1>
+        <p className="text-blue-100">Manage your hostel operations efficiently</p>
+      </div>
+
+      {/* Quick Actions */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Admin Dashboard</h1>
-        <p className="text-slate-600">Welcome, {userName}</p>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickActions.map((action) => (
+            <Link 
+              key={action.title} 
+              to={action.href} 
+              className={`bg-gradient-to-br ${action.color} text-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-between group`}
+            >
+              <div>
+                <p className="font-semibold text-sm">{action.title}</p>
+              </div>
+              <span className="text-2xl opacity-80 group-hover:opacity-100 transition-opacity">{action.icon}</span>
+            </Link>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {quickActions.map((action) => (
-          <Link key={action.title} to={action.href} className={`${action.color} text-white rounded-xl p-4`}>
-            {action.title}
-          </Link>
-        ))}
+      {/* Statistics */}
+      <div>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Key Statistics</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard label="Total Rooms" value={stats.totalRooms} icon="🏠" color="from-blue-500 to-blue-600" />
+          <StatCard label="Available Rooms" value={stats.availableRooms} icon="✅" color="from-green-500 to-green-600" />
+          <StatCard label="Total Students" value={stats.totalStudents} icon="👥" color="from-purple-500 to-purple-600" />
+          <StatCard label="Active Allocations" value={stats.activeAllocations} icon="📋" color="from-orange-500 to-orange-600" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card><CardContent><p className="text-sm text-slate-600">Total Rooms</p><p className="text-2xl font-bold">{stats.totalRooms}</p></CardContent></Card>
-        <Card><CardContent><p className="text-sm text-slate-600">Available Rooms</p><p className="text-2xl font-bold">{stats.availableRooms}</p></CardContent></Card>
-        <Card><CardContent><p className="text-sm text-slate-600">Total Students</p><p className="text-2xl font-bold">{stats.totalStudents}</p></CardContent></Card>
-        <Card><CardContent><p className="text-sm text-slate-600">Active Allocations</p><p className="text-2xl font-bold">{stats.activeAllocations}</p></CardContent></Card>
-      </div>
-
+      {/* Recent Allocations */}
       <Card>
+        <div className="border-b border-gray-200 pb-4 mb-4 flex justify-between items-center">
+          <CardTitle>Recent Allocations</CardTitle>
+          <Link to="/allocations">
+            <Button variant="outline" size="sm">View All</Button>
+          </Link>
+        </div>
         <CardContent>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-slate-800">Recent Allocations</h2>
-            <Link to="/allocations" className="text-sm text-blue-600">View All</Link>
-          </div>
-          <div className="space-y-2">
-            {recentAllocations.length === 0 ? (
-              <p className="text-sm text-slate-500">No allocations yet.</p>
-            ) : (
-              recentAllocations.map((a) => (
-                <div key={a.id} className="border rounded p-3 text-sm flex justify-between">
-                  <span>Room {a.roomNumber || a.roomId} - {a.studentName || `Student ${a.studentId}`}</span>
-                  <span className="font-semibold">{a.status}</span>
+          {recentAllocations.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-sm">No allocations yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentAllocations.map((a) => (
+                <div key={a.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-gray-900">Room {a.roomNumber || a.roomId}</p>
+                      <p className="text-sm text-gray-600 mt-1">{a.studentName || `Student ${a.studentId}`}</p>
+                    </div>
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                      a.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                      a.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                      a.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {a.status}
+                    </span>
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

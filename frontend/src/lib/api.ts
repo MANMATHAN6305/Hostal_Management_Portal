@@ -6,11 +6,73 @@ export const api = axios.create({
   baseURL: API_BASE_URL
 });
 
+const AUTH_TOKEN_KEYS = ['token', 'authToken', 'accessToken'];
+const SESSION_KEYS = ['isLoggedIn', 'token', 'authToken', 'accessToken', 'userId', 'userEmail', 'userName', 'userRole', 'studentId'];
+
+const normalizeToken = (rawToken: string | null): string | null => {
+  if (!rawToken) return null;
+
+  let token = rawToken.trim();
+  if (!token) return null;
+
+  if (token.toLowerCase() === 'null' || token.toLowerCase() === 'undefined') {
+    return null;
+  }
+
+  token = token.replace(/^"(.+)"$/, '$1').trim();
+  token = token.replace(/^Bearer\s+/i, '').trim();
+
+  if (!token || token.toLowerCase() === 'null' || token.toLowerCase() === 'undefined') {
+    return null;
+  }
+
+  return token;
+};
+
+const getStoredToken = (): string | null => {
+  for (const key of AUTH_TOKEN_KEYS) {
+    const token = normalizeToken(localStorage.getItem(key));
+    if (token) return token;
+  }
+  return null;
+};
+
+const clearSession = () => {
+  SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
+};
+
 api.interceptors.request.use((config: any) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const token = getStoredToken();
+  if (!config.headers) {
+    config.headers = {};
+  }
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else if (config.headers.Authorization) {
+    delete config.headers.Authorization;
+  }
+
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error: any) => {
+    const status = error?.response?.status;
+    const requestUrl = String(error?.config?.url || '');
+    const isAuthRoute = requestUrl.startsWith('/auth/');
+
+    if (status === 401 && !isAuthRoute) {
+      clearSession();
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 const unwrap = async (promise: Promise<any>): Promise<any> => (await promise).data;
 
@@ -119,7 +181,8 @@ export const adminApi = {
   assignComplaint: (id: number, data: { assignedStaffRole: string }) => unwrap(api.put(`/complaints/${id}/assign`, data)),
   deleteComplaint: (id: number) => unwrap(api.delete(`/admin/complaints/${id}`)),
   getStats: () => unwrap(api.get('/dashboard/summary')),
-  getMenu: () => unwrap(api.get('/admin/menu')),
+  getMenu: (weekStartDate?: string) =>
+    unwrap(api.get('/admin/menu', { params: weekStartDate ? { weekStartDate } : undefined })),
   updateMenu: (data: { weekStartDate: string; menuItems: any[] }) => unwrap(api.post('/admin/menu', data)),
   getStaff: () => unwrap(api.get('/staff')),
   createStaff: (data: unknown) => unwrap(api.post('/staff', data)),
@@ -129,7 +192,21 @@ export const adminApi = {
   getAttendance: () => unwrap(api.get('/attendance')),
   addAttendance: (data: unknown) => unwrap(api.post('/attendance', data)),
   getHostels: () => unwrap(api.get('/hostels')),
-  addHostel: (data: unknown) => unwrap(api.post('/hostels', data))
+  addHostel: (data: unknown) => unwrap(api.post('/hostels', data)),
+  updateHostel: (id: number, data: unknown) => unwrap(api.put(`/hostels/${id}`, data)),
+  deleteHostel: (id: number) => unwrap(api.delete(`/hostels/${id}`)),
+  // Warden Management
+  getWardens: () => unwrap(api.get('/admin/wardens')),
+  getWardenById: (id: number) => unwrap(api.get(`/admin/wardens/${id}`)),
+  createWarden: (data: unknown) => unwrap(api.post('/admin/wardens', data)),
+  updateWarden: (id: number, data: unknown) => unwrap(api.put(`/admin/wardens/${id}`, data)),
+  deleteWarden: (id: number) => unwrap(api.delete(`/admin/wardens/${id}`)),
+  // Messages
+  getAllMessages: () => unwrap(api.get('/messages/admin/all')),
+  sendMessageToWarden: (data: unknown) => unwrap(api.post('/messages/admin/send', data)),
+  updateMessageStatus: (id: number, data: { status?: string; adminReply?: string }) => 
+    unwrap(api.put(`/messages/admin/${id}/status`, data)),
+  deleteMessage: (id: number) => unwrap(api.delete(`/messages/admin/${id}`))
 };
 
 export const wardenApi = {
@@ -142,7 +219,13 @@ export const wardenApi = {
   assignComplaint: (id: number, assignedStaffRole: string) => unwrap(api.put(`/complaints/${id}/assign`, { assignedStaffRole })),
   updateComplaint: (id: number, data: { status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'; adminReply?: string }) =>
     unwrap(api.put(`/complaints/${id}/status`, data)),
-  getAttendance: () => unwrap(api.get('/attendance'))
+  getAttendance: () => unwrap(api.get('/attendance')),
+  // Messages
+  getSentMessages: () => unwrap(api.get('/messages/warden/sent')),
+  getReceivedMessages: () => unwrap(api.get('/messages/warden/received')),
+  sendMessage: (data: { title: string; description: string; priority?: string }) => 
+    unwrap(api.post('/messages/warden/send', data)),
+  markMessageSeen: (id: number) => unwrap(api.put(`/messages/${id}/mark-seen`))
 };
 
 export const staffApi = {
