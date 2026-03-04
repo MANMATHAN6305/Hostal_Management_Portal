@@ -32,6 +32,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(20),
     allowNull: true
   },
+  gender: {
+    type: DataTypes.ENUM('male', 'female', 'other'),
+    allowNull: true
+  },
   googleId: {
     type: DataTypes.STRING(100),
     unique: true,

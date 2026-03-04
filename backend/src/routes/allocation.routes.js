@@ -3,6 +3,21 @@ const router = express.Router();
 const Allocation = require('../models/Allocation');
 const Room = require('../models/Room');
 const Student = require('../models/Student');
+const Hostel = require('../models/Hostel');
+const { Op } = require('sequelize');
+const { verifyToken, authorizeRoles } = require('../middleware/auth');
+
+const getWardenHostelNames = async (wardenId) => {
+  const hostels = await Hostel.findAll({
+    where: { wardenId },
+    attributes: ['name'],
+    raw: true
+  });
+
+  return hostels
+    .map((hostel) => String(hostel.name || '').trim())
+    .filter(Boolean);
+};
 
 // Helper function to format allocation response
 const formatAllocation = (allocation) => ({
@@ -21,13 +36,35 @@ const formatAllocation = (allocation) => ({
 });
 
 // GET /api/allocations - Get all allocations
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res) => {
   try {
-    const allocations = await Allocation.findAll({
-      include: [
-        { model: Room, attributes: ['roomNumber', 'blockName'] },
+    let include = [
+      { model: Room, attributes: ['roomNumber', 'blockName'] },
+      { model: Student, attributes: ['firstName', 'lastName'] }
+    ];
+
+    if (req.user.role === 'WARDEN') {
+      const hostelNames = await getWardenHostelNames(req.user.id);
+      if (hostelNames.length === 0) {
+        return res.json([]);
+      }
+
+      include = [
+        {
+          model: Room,
+          attributes: ['roomNumber', 'blockName'],
+          where: {
+            blockName: {
+              [Op.in]: hostelNames
+            }
+          }
+        },
         { model: Student, attributes: ['firstName', 'lastName'] }
-      ],
+      ];
+    }
+
+    const allocations = await Allocation.findAll({
+      include,
       order: [['id', 'DESC']]
     });
     
@@ -39,14 +76,39 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/allocations/:id - Get allocation by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res) => {
   try {
-    const allocation = await Allocation.findByPk(req.params.id, {
-      include: [
-        { model: Room, attributes: ['roomNumber', 'blockName'] },
-        { model: Student, attributes: ['firstName', 'lastName'] }
-      ]
-    });
+    let allocation = null;
+
+    if (req.user.role === 'WARDEN') {
+      const hostelNames = await getWardenHostelNames(req.user.id);
+      if (hostelNames.length === 0) {
+        return res.status(404).json({ message: 'Allocation not found' });
+      }
+
+      allocation = await Allocation.findOne({
+        where: { id: req.params.id },
+        include: [
+          {
+            model: Room,
+            attributes: ['roomNumber', 'blockName'],
+            where: {
+              blockName: {
+                [Op.in]: hostelNames
+              }
+            }
+          },
+          { model: Student, attributes: ['firstName', 'lastName'] }
+        ]
+      });
+    } else {
+      allocation = await Allocation.findByPk(req.params.id, {
+        include: [
+          { model: Room, attributes: ['roomNumber', 'blockName'] },
+          { model: Student, attributes: ['firstName', 'lastName'] }
+        ]
+      });
+    }
     
     if (!allocation) {
       return res.status(404).json({ message: 'Allocation not found' });

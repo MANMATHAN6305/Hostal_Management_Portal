@@ -5,16 +5,27 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { roomsApi, adminApi } from '@/lib/api';
 
+interface HostelWarden {
+  id: number;
+  fullName: string;
+  email: string;
+}
+
 interface Hostel {
   id: number;
   name: string;
-  gender: 'MALE' | 'FEMALE';
+  blockCode?: string | null;
+  gender: 'MALE' | 'FEMALE' | 'COED';
+  totalRooms: number;
+  actualRoomCount?: number;
+  warden?: HostelWarden | null;
 }
 
 export default function AddRoom() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [hostels, setHostels] = useState<Hostel[]>([]);
+  const [selectedHostelId, setSelectedHostelId] = useState('');
   const [formData, setFormData] = useState({
     roomNumber: '',
     roomType: 'SINGLE',
@@ -24,7 +35,7 @@ export default function AddRoom() {
     floorNumber: '',
     blockName: '',
     amenities: '',
-    gender: 'MALE',
+    gender: 'MALE'
   });
 
   useEffect(() => {
@@ -40,23 +51,34 @@ export default function AddRoom() {
     }
   };
 
+  const selectedHostel = hostels.find((hostel) => String(hostel.id) === selectedHostelId) || null;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => {
-      // Reset hostel name when gender changes
-      if (name === 'gender') {
-        return { ...prev, [name]: value, blockName: '' };
-      }
-      return { ...prev, [name]: value };
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Get hostel options based on selected gender
-  const getHostelOptions = () => {
-    return hostels.filter(h => h.gender === formData.gender);
+  const handleHostelChange = (value: string) => {
+    setSelectedHostelId(value);
+
+    const hostel = hostels.find((item) => String(item.id) === value);
+    if (!hostel) {
+      setFormData((prev) => ({
+        ...prev,
+        blockName: '',
+        gender: 'MALE'
+      }));
+      return;
+    }
+
+    const resolvedGender = hostel.gender === 'COED' ? 'MALE' : hostel.gender;
+    setFormData((prev) => ({
+      ...prev,
+      blockName: hostel.name,
+      gender: resolvedGender
+    }));
   };
 
-  // Auto-calculate capacity based on room type
   const getCapacityFromRoomType = (roomType: string) => {
     switch (roomType) {
       case 'SINGLE': return 1;
@@ -72,6 +94,12 @@ export default function AddRoom() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!selectedHostel) {
+      alert('Please select a hostel.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -79,7 +107,7 @@ export default function AddRoom() {
         ...formData,
         pricePerNight: parseFloat(formData.pricePerNight),
         capacity: getCapacityFromRoomType(formData.roomType),
-        floorNumber: parseInt(formData.floorNumber),
+        floorNumber: parseInt(formData.floorNumber)
       });
       alert('Room added successfully!');
       navigate('/rooms');
@@ -94,7 +122,7 @@ export default function AddRoom() {
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
         <Link to="/rooms" className="text-gray-700 hover:text-gray-900 flex items-center gap-2">
-          ← Back to Rooms
+          Back to Rooms
         </Link>
       </div>
 
@@ -105,6 +133,37 @@ export default function AddRoom() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Hostel *</label>
+                <select
+                  value={selectedHostelId}
+                  onChange={(e) => handleHostelChange(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
+                  required
+                >
+                  <option value="">Select Hostel</option>
+                  {hostels.map((hostel) => (
+                    <option key={hostel.id} value={String(hostel.id)}>
+                      {hostel.name} | {hostel.gender} | Target {hostel.totalRooms} | Actual {hostel.actualRoomCount || 0}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedHostel && (
+                <div className="md:col-span-2 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-2">Hostel Details</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+                    <p><span className="font-medium">Name:</span> {selectedHostel.name}</p>
+                    <p><span className="font-medium">Block Code:</span> {selectedHostel.blockCode || 'N/A'}</p>
+                    <p><span className="font-medium">Type:</span> {selectedHostel.gender}</p>
+                    <p><span className="font-medium">Target Rooms:</span> {selectedHostel.totalRooms}</p>
+                    <p><span className="font-medium">Actual Rooms:</span> {selectedHostel.actualRoomCount || 0}</p>
+                    <p><span className="font-medium">Warden:</span> {selectedHostel.warden?.fullName || 'Not Assigned'}</p>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Room Number *</label>
                 <Input
@@ -119,32 +178,23 @@ export default function AddRoom() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
-                <select
-                  name="gender"
+                <Input
+                  type="text"
                   value={formData.gender}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
-                  required
-                >
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                </select>
+                  readOnly
+                  className="bg-gray-100"
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Hostel Name *</label>
-                <select
+                <Input
+                  type="text"
                   name="blockName"
                   value={formData.blockName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
-                  required
-                >
-                  <option value="">Select Hostel Name</option>
-                  {getHostelOptions().map(hostel => (
-                    <option key={hostel.id} value={hostel.name}>{hostel.name}</option>
-                  ))}
-                </select>
+                  readOnly
+                  className="bg-gray-100"
+                />
               </div>
 
               <div>
@@ -180,7 +230,7 @@ export default function AddRoom() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Fee per Semester (₹) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Fee per Semester (INR) *</label>
                 <Input
                   type="number"
                   name="pricePerNight"

@@ -16,6 +16,9 @@ const WardenMessage = require('./WardenMessage');
 User.hasMany(Hostel, { foreignKey: 'wardenId', as: 'assignedHostels' });
 Hostel.belongsTo(User, { foreignKey: 'wardenId', as: 'warden' });
 
+Hostel.hasMany(Room, { foreignKey: 'hostelId', as: 'rooms' });
+Room.belongsTo(Hostel, { foreignKey: 'hostelId', as: 'hostel' });
+
 WardenMessage.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
 WardenMessage.belongsTo(User, { foreignKey: 'receiverId', as: 'receiver' });
 

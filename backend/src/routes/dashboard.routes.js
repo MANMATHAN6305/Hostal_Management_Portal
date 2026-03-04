@@ -8,6 +8,8 @@ const Allocation = require('../models/Allocation');
 const Attendance = require('../models/Attendance');
 const Payment = require('../models/Payment');
 const Student = require('../models/Student');
+const Room = require('../models/Room');
+const Hostel = require('../models/Hostel');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT', 'STAFF'), async (req, res) => {
@@ -26,9 +28,70 @@ router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT',
 
     if (req.user.role === 'WARDEN') {
       const today = new Date().toISOString().split('T')[0];
-      const complaintScope = {
-        [Op.or]: [{ assignedById: null }, { assignedById: req.user.id }]
-      };
+
+      const wardenHostels = await Hostel.findAll({
+        where: { wardenId: req.user.id },
+        attributes: ['name'],
+        raw: true
+      });
+      const hostelNames = wardenHostels
+        .map((hostel) => String(hostel.name || '').trim())
+        .filter(Boolean);
+
+      if (hostelNames.length === 0) {
+        return res.json({
+          success: true,
+          role: 'WARDEN',
+          stats: {
+            pendingRequests: 0,
+            openComplaints: 0,
+            attendanceLogs: 0,
+            totalStudents: 0,
+            allocatedStudents: 0,
+            resolvedComplaints: 0,
+            approvedRequests: 0,
+            todayAttendance: 0
+          }
+        });
+      }
+
+      const scopedAllocations = await Allocation.findAll({
+        where: { status: 'ACTIVE' },
+        include: [{
+          model: Room,
+          where: {
+            blockName: {
+              [Op.in]: hostelNames
+            }
+          },
+          attributes: []
+        }],
+        attributes: ['StudentId'],
+        raw: true
+      });
+
+      const studentIds = [...new Set(
+        scopedAllocations
+          .map((allocation) => Number(allocation.StudentId))
+          .filter((studentId) => Number.isFinite(studentId) && studentId > 0)
+      )];
+
+      if (studentIds.length === 0) {
+        return res.json({
+          success: true,
+          role: 'WARDEN',
+          stats: {
+            pendingRequests: 0,
+            openComplaints: 0,
+            attendanceLogs: 0,
+            totalStudents: 0,
+            allocatedStudents: 0,
+            resolvedComplaints: 0,
+            approvedRequests: 0,
+            todayAttendance: 0
+          }
+        });
+      }
 
       const [
         pendingRequests,
@@ -40,28 +103,39 @@ router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT',
         allocatedStudents,
         todayAttendance
       ] = await Promise.all([
-        Request.count({ where: { status: 'PENDING' } }),
-        Request.count({ where: { status: 'APPROVED' } }),
+        Request.count({
+          where: {
+            StudentId: { [Op.in]: studentIds },
+            status: 'PENDING'
+          }
+        }),
+        Request.count({
+          where: {
+            StudentId: { [Op.in]: studentIds },
+            status: 'APPROVED'
+          }
+        }),
         Complaint.count({
           where: {
-            ...complaintScope,
+            StudentId: { [Op.in]: studentIds },
             status: { [Op.in]: ['PENDING', 'IN_PROGRESS'] }
           }
         }),
         Complaint.count({
           where: {
-            ...complaintScope,
+            StudentId: { [Op.in]: studentIds },
             status: 'RESOLVED'
           }
         }),
-        Attendance.count(),
-        Student.count(),
-        Allocation.count({
-          where: { status: 'ACTIVE' },
-          distinct: true,
-          col: 'StudentId'
-        }),
-        Attendance.count({ where: { date: today } })
+        Attendance.count({ where: { StudentId: { [Op.in]: studentIds } } }),
+        Student.count({ where: { id: { [Op.in]: studentIds } } }),
+        Promise.resolve(studentIds.length),
+        Attendance.count({
+          where: {
+            StudentId: { [Op.in]: studentIds },
+            date: today
+          }
+        })
       ]);
 
       return res.json({

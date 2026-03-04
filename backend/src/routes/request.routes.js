@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 const Request = require('../models/Request');
 const Student = require('../models/Student');
+const Allocation = require('../models/Allocation');
+const Room = require('../models/Room');
+const Hostel = require('../models/Hostel');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 let requestSchemaReady = false;
@@ -41,6 +45,49 @@ const parseDateInput = (value) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed;
+};
+
+const getWardenHostelNames = async (wardenId) => {
+  const hostels = await Hostel.findAll({
+    where: { wardenId },
+    attributes: ['name'],
+    raw: true
+  });
+
+  return hostels
+    .map((hostel) => String(hostel.name || '').trim())
+    .filter(Boolean);
+};
+
+const getWardenStudentIds = async (wardenId) => {
+  const hostelNames = await getWardenHostelNames(wardenId);
+  if (hostelNames.length === 0) return [];
+
+  const allocations = await Allocation.findAll({
+    where: { status: 'ACTIVE' },
+    include: [{
+      model: Room,
+      where: {
+        blockName: {
+          [Op.in]: hostelNames
+        }
+      },
+      attributes: []
+    }],
+    attributes: ['StudentId'],
+    raw: true
+  });
+
+  return [...new Set(
+    allocations
+      .map((allocation) => Number(allocation.StudentId))
+      .filter((studentId) => Number.isFinite(studentId) && studentId > 0)
+  )];
+};
+
+const canWardenAccessStudent = async (wardenId, studentId) => {
+  const wardenStudentIds = await getWardenStudentIds(wardenId);
+  return wardenStudentIds.includes(Number(studentId));
 };
 
 router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
@@ -124,6 +171,9 @@ router.get('/', verifyToken, authorizeRoles('STUDENT', 'WARDEN', 'ADMIN'), async
     if (req.user.role === 'STUDENT') {
       const student = await Student.findOne({ where: { email: req.user.email } });
       where = { StudentId: student?.id || -1 };
+    } else if (req.user.role === 'WARDEN') {
+      const wardenStudentIds = await getWardenStudentIds(req.user.id);
+      where = wardenStudentIds.length > 0 ? { StudentId: { [Op.in]: wardenStudentIds } } : { StudentId: -1 };
     }
     const requests = await Request.findAll({
       where,
@@ -152,6 +202,14 @@ router.put('/:id/review', verifyToken, authorizeRoles('WARDEN', 'ADMIN'), async 
 
     const request = await Request.findByPk(req.params.id);
     if (!request) return res.status(404).json({ success: false, message: 'Request not found.' });
+
+    if (req.user.role === 'WARDEN') {
+      const hasAccess = await canWardenAccessStudent(req.user.id, request.StudentId);
+      if (!hasAccess) {
+        return res.status(403).json({ success: false, message: 'Access denied for this student request.' });
+      }
+    }
+
     if (!['APPROVED', 'REJECTED'].includes(req.body.status)) {
       return res.status(400).json({ success: false, message: 'Invalid review status.' });
     }

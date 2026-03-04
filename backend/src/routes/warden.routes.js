@@ -12,7 +12,7 @@ router.get('/wardens', verifyToken, isAdmin, async (req, res) => {
   try {
     const wardens = await User.findAll({
       where: { role: 'WARDEN' },
-      attributes: ['id', 'fullName', 'email', 'phone', 'isActive', 'createdAt'],
+      attributes: ['id', 'fullName', 'email', 'phone', 'gender', 'isActive', 'createdAt'],
       include: [{
         model: Hostel,
         as: 'assignedHostels',
@@ -30,6 +30,7 @@ router.get('/wardens', verifyToken, isAdmin, async (req, res) => {
         fullName: w.fullName || '',
         email: w.email,
         phone: w.phone,
+        gender: w.gender,
         isActive: w.isActive,
         createdAt: w.createdAt,
         assignedHostel: w.assignedHostels?.[0] || null
@@ -49,7 +50,7 @@ router.get('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
   try {
     const warden = await User.findOne({
       where: { id: req.params.id, role: 'WARDEN' },
-      attributes: ['id', 'fullName', 'email', 'phone', 'isActive', 'createdAt']
+      attributes: ['id', 'fullName', 'email', 'phone', 'gender', 'isActive', 'createdAt']
     });
 
     if (!warden) {
@@ -116,6 +117,7 @@ router.get('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
         fullName: warden.fullName,
         email: warden.email,
         phone: warden.phone,
+        gender: warden.gender,
         isActive: warden.isActive,
         createdAt: warden.createdAt
       },
@@ -133,7 +135,7 @@ router.get('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
 // POST /api/admin/wardens - Create new warden
 router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
   try {
-    const { fullName, email, password, phone, hostelId } = req.body;
+    const { fullName, email, password, phone, gender, hostelId } = req.body;
 
     if (!fullName || !email || !password) {
       return res.status(400).json({
@@ -178,6 +180,7 @@ router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
       email,
       password: hashedPassword,
       phone,
+      gender,
       role: 'WARDEN',
       isActive: true
     });
@@ -197,7 +200,8 @@ router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
         id: warden.id,
         fullName: warden.fullName,
         email: warden.email,
-        phone: warden.phone
+        phone: warden.phone,
+        gender: warden.gender
       }
     });
   } catch (error) {
@@ -212,7 +216,7 @@ router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
 // PUT /api/admin/wardens/:id - Update warden
 router.put('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
   try {
-    const { fullName, email, phone, hostelId, isActive, password } = req.body;
+    const { fullName, email, phone, gender, hostelId, isActive, password } = req.body;
 
     const warden = await User.findOne({
       where: { id: req.params.id, role: 'WARDEN' }
@@ -271,6 +275,7 @@ router.put('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
     if (fullName) warden.fullName = fullName;
     if (email) warden.email = email;
     if (phone !== undefined) warden.phone = phone;
+    if (gender) warden.gender = gender;
     if (isActive !== undefined) warden.isActive = isActive;
     if (password) {
       warden.password = await bcrypt.hash(password, 10);
@@ -286,6 +291,7 @@ router.put('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
         fullName: warden.fullName,
         email: warden.email,
         phone: warden.phone,
+        gender: warden.gender,
         isActive: warden.isActive
       }
     });

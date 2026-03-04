@@ -58,6 +58,26 @@ const statusBadgeVariant = (status: string) => {
   }
 };
 
+const roomTypeCapacityMap: Record<string, number> = {
+  SINGLE: 1,
+  DOUBLE: 2,
+  TRIPLE: 3,
+  FOUR_BED: 4,
+  FIVE_BED: 5,
+  EIGHT_BED: 8,
+  DORMITORY: 10
+};
+
+const getCapacityFromRoom = (room: Room) => {
+  const mappedCapacity = roomTypeCapacityMap[room.roomType];
+  if (mappedCapacity) return mappedCapacity;
+
+  const fallbackCapacity = Number(room.capacity || 0);
+  if (Number.isFinite(fallbackCapacity) && fallbackCapacity > 0) return fallbackCapacity;
+
+  return 1;
+};
+
 // Format room type for display
 const formatRoomType = (type: string) => {
   switch (type) {
@@ -97,13 +117,24 @@ export default function Rooms() {
   }, [hostels, rooms, genderFilter]);
 
   // Calculate statistics
+  const roomOccupancy = rooms.map((room) => {
+    const totalBeds = getCapacityFromRoom(room);
+    const occupiedBeds = Math.max(0, Math.min(totalBeds, Number(room.occupied || 0)));
+
+    return {
+      totalBeds,
+      occupiedBeds,
+      availableBeds: Math.max(0, totalBeds - occupiedBeds)
+    };
+  });
+
   const stats = {
     total: rooms.length,
-    available: rooms.filter(r => r.status === 'AVAILABLE').length,
+    availableBeds: roomOccupancy.reduce((sum, current) => sum + current.availableBeds, 0),
     occupied: rooms.filter(r => r.status === 'OCCUPIED').length,
     maintenance: rooms.filter(r => r.status === 'MAINTENANCE').length,
-    totalCapacity: rooms.reduce((sum, r) => sum + (r.capacity || 0), 0),
-    totalOccupied: rooms.reduce((sum, r) => sum + (r.occupied || 0), 0),
+    totalCapacity: roomOccupancy.reduce((sum, current) => sum + current.totalBeds, 0),
+    totalOccupied: roomOccupancy.reduce((sum, current) => sum + current.occupiedBeds, 0),
   };
 
   useEffect(() => {
@@ -220,8 +251,8 @@ export default function Rooms() {
         </Card>
         <Card>
           <CardContent className="py-4 text-center">
-            <p className="text-2xl font-bold text-green-600">{stats.available}</p>
-            <p className="text-sm text-gray-500">Available</p>
+            <p className="text-2xl font-bold text-green-600">{stats.availableBeds}</p>
+            <p className="text-sm text-gray-500">Available Beds</p>
           </CardContent>
         </Card>
         <Card>
@@ -344,7 +375,15 @@ export default function Rooms() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Occupancy:</span>
-                    <span className="font-medium text-gray-800">{room.occupied || 0} occupied beds</span>
+                    <span className="font-medium text-gray-800">
+                      {Math.max(0, Math.min(getCapacityFromRoom(room), Number(room.occupied || 0)))}/{getCapacityFromRoom(room)} beds occupied
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Available Beds:</span>
+                    <span className="font-medium text-gray-800">
+                      {Math.max(0, getCapacityFromRoom(room) - Math.max(0, Math.min(getCapacityFromRoom(room), Number(room.occupied || 0))))}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Fee/Semester:</span>
@@ -354,6 +393,23 @@ export default function Rooms() {
                     <span className="text-gray-500">Amenities:</span>
                     <span className="font-medium text-gray-800 text-right max-w-[60%] truncate" title={room.amenities || 'N/A'}>{room.amenities || 'N/A'}</span>
                   </div>
+                  {(room as any).hostel && (
+                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      <div className="mb-2">
+                        <p className="text-xs text-gray-600 font-medium">Hostel Details</p>
+                        <p className="text-xs text-gray-700 font-semibold">{(room as any).hostel.name}</p>
+                      </div>
+                      {(room as any).hostel.warden ? (
+                        <p className="text-xs text-green-600">
+                          ✅ Warden: {(room as any).hostel.warden.fullName}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-orange-600">
+                          ⚠️ No Warden Assigned
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2 mt-4 pt-4 border-t">
                   <Link to={`/rooms/edit/${room.id}`} className="flex-1">

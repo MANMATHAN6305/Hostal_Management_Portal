@@ -221,15 +221,40 @@ router.put('/admin/:id/status', verifyToken, isAdmin, async (req, res) => {
       });
     }
 
+    const previousReply = typeof message.adminReply === 'string' ? message.adminReply.trim() : '';
+    const nextReply = typeof adminReply === 'string' ? adminReply.trim() : '';
+
     if (status) message.status = status;
     if (adminReply !== undefined) message.adminReply = adminReply;
 
     await message.save();
 
+    let replyMessage = null;
+
+    // Deliver admin reply as an actual inbox message to the original warden sender.
+    if (!previousReply && nextReply) {
+      const originalSender = await User.findByPk(message.senderId, {
+        attributes: ['id', 'role']
+      });
+
+      if (originalSender && originalSender.role === 'WARDEN') {
+        replyMessage = await WardenMessage.create({
+          senderId: req.user.id,
+          receiverId: originalSender.id,
+          title: `Reply: ${message.title}`,
+          description: nextReply,
+          priority: message.priority || 'MEDIUM',
+          status: 'SENT',
+          isToAllWardens: false
+        });
+      }
+    }
+
     res.json({
       success: true,
       message: 'Message updated successfully',
-      data: message
+      data: message,
+      replyMessage
     });
   } catch (error) {
     console.error('Update message status error:', error);

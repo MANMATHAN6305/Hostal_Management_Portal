@@ -9,6 +9,52 @@ const Menu = require('../models/Menu');
 const User = require('../models/User');
 const { verifyToken, isStudent } = require('../middleware/auth');
 
+const roomTypeCapacityMap = {
+  SINGLE: 1,
+  DOUBLE: 2,
+  TRIPLE: 3,
+  FOUR_BED: 4,
+  FIVE_BED: 5,
+  EIGHT_BED: 8,
+  DORMITORY: 10
+};
+
+const getCapacityFromRoomType = (roomType, fallbackCapacity = 1) => {
+  const mapped = roomTypeCapacityMap[roomType];
+  if (mapped) return mapped;
+
+  const parsedFallback = Number(fallbackCapacity);
+  if (Number.isFinite(parsedFallback) && parsedFallback > 0) return parsedFallback;
+
+  return 1;
+};
+
+const getRoomOccupancyDetails = async (room) => {
+  if (!room) {
+    return {
+      capacity: 0,
+      currentOccupancy: 0,
+      availableBeds: 0
+    };
+  }
+
+  const capacity = getCapacityFromRoomType(room.roomType, room.capacity);
+  const occupiedCount = await Allocation.count({
+    where: {
+      RoomId: room.id,
+      status: 'ACTIVE'
+    }
+  });
+
+  const currentOccupancy = Math.max(0, Math.min(capacity, Number(occupiedCount) || 0));
+
+  return {
+    capacity,
+    currentOccupancy,
+    availableBeds: Math.max(0, capacity - currentOccupancy)
+  };
+};
+
 async function getStudentFromTokenUser(tokenUser) {
   return Student.findOne({ where: { email: tokenUser.email } });
 }
@@ -96,7 +142,7 @@ router.get('/room', verifyToken, async (req, res) => {
       },
       include: [{
         model: Room,
-        attributes: ['id', 'roomNumber', 'roomType', 'floorNumber', 'blockName', 'status', 'amenities', 'description']
+        attributes: ['id', 'roomNumber', 'roomType', 'capacity', 'occupied', 'floorNumber', 'blockName', 'status', 'pricePerNight', 'amenities', 'description']
       }],
       order: [['createdAt', 'DESC']]
     });
@@ -111,6 +157,8 @@ router.get('/room', verifyToken, async (req, res) => {
       });
     }
 
+    const occupancy = await getRoomOccupancyDetails(allocation.Room);
+
     res.json({
       success: true,
       allocated: true,
@@ -118,9 +166,13 @@ router.get('/room', verifyToken, async (req, res) => {
         id: allocation.Room.id,
         roomNumber: allocation.Room.roomNumber,
         roomType: allocation.Room.roomType,
+        capacity: occupancy.capacity,
+        currentOccupancy: occupancy.currentOccupancy,
+        availableBeds: occupancy.availableBeds,
         floorNumber: allocation.Room.floorNumber,
         blockName: allocation.Room.blockName,
-        status: allocation.Room.status,
+        status: allocation.status === 'ACTIVE' ? 'Allocated' : 'Available',
+        semesterFee: Number(allocation.Room.pricePerNight) || 0,
         amenities: allocation.Room.amenities,
         description: allocation.Room.description
       },
@@ -321,7 +373,7 @@ router.get('/dashboard', verifyToken, async (req, res) => {
       },
       include: [{
         model: Room,
-        attributes: ['id', 'roomNumber', 'roomType', 'floorNumber', 'blockName', 'status', 'amenities']
+        attributes: ['id', 'roomNumber', 'roomType', 'capacity', 'occupied', 'floorNumber', 'blockName', 'status', 'pricePerNight', 'amenities']
       }],
       order: [['createdAt', 'DESC']]
     });
@@ -356,6 +408,8 @@ router.get('/dashboard', verifyToken, async (req, res) => {
       }
     }
 
+    const roomOccupancy = allocation?.Room ? await getRoomOccupancyDetails(allocation.Room) : null;
+
     res.json({
       success: true,
       student: {
@@ -374,6 +428,11 @@ router.get('/dashboard', verifyToken, async (req, res) => {
         roomType: allocation.Room.roomType,
         floorNumber: allocation.Room.floorNumber,
         blockName: allocation.Room.blockName,
+        capacity: roomOccupancy?.capacity || 0,
+        currentOccupancy: roomOccupancy?.currentOccupancy || 0,
+        availableBeds: roomOccupancy?.availableBeds || 0,
+        semesterFee: Number(allocation.Room.pricePerNight) || 0,
+        status: allocation.status === 'ACTIVE' ? 'Allocated' : 'Available',
         amenities: allocation.Room.amenities
       } : null,
       allocation: allocation ? {

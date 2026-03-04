@@ -49,6 +49,14 @@ const Room = sequelize.define('Room', {
   },
   amenities: {
     type: DataTypes.STRING(255)
+  },
+  hostelId: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    references: {
+      model: 'Hostels',
+      key: 'id'
+    }
   }
 });
 

@@ -2,28 +2,91 @@ const express = require('express');
 const router = express.Router();
 const Student = require('../models/Student');
 const Application = require('../models/Application');
+const Allocation = require('../models/Allocation');
+const Room = require('../models/Room');
+const Hostel = require('../models/Hostel');
 const { Op } = require('sequelize');
+const { verifyToken, authorizeRoles } = require('../middleware/auth');
+
+const getWardenHostelNames = async (wardenId) => {
+  const hostels = await Hostel.findAll({
+    where: { wardenId },
+    attributes: ['name'],
+    raw: true
+  });
+
+  return hostels
+    .map((hostel) => String(hostel.name || '').trim())
+    .filter(Boolean);
+};
+
+const getWardenStudentIds = async (wardenId) => {
+  const hostelNames = await getWardenHostelNames(wardenId);
+  if (hostelNames.length === 0) return [];
+
+  const allocations = await Allocation.findAll({
+    where: { status: 'ACTIVE' },
+    include: [{
+      model: Room,
+      where: {
+        blockName: {
+          [Op.in]: hostelNames
+        }
+      },
+      attributes: []
+    }],
+    attributes: ['StudentId'],
+    raw: true
+  });
+
+  return [...new Set(
+    allocations
+      .map((allocation) => Number(allocation.StudentId))
+      .filter((studentId) => Number.isFinite(studentId) && studentId > 0)
+  )];
+};
+
+const canWardenAccessStudent = async (wardenId, studentId) => {
+  const wardenStudentIds = await getWardenStudentIds(wardenId);
+  return wardenStudentIds.includes(Number(studentId));
+};
 
 // GET /api/students - Get all students
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res) => {
   try {
-    const applicationRows = await Application.findAll({
-      attributes: ['StudentId'],
-      group: ['StudentId'],
-      raw: true
-    });
-    const studentIds = applicationRows.map((row) => row.StudentId).filter(Boolean);
+    let students = [];
 
-    if (studentIds.length === 0) {
-      return res.json([]);
+    if (req.user.role === 'WARDEN') {
+      const scopedStudentIds = await getWardenStudentIds(req.user.id);
+      if (scopedStudentIds.length === 0) {
+        return res.json([]);
+      }
+
+      students = await Student.findAll({
+        where: {
+          id: { [Op.in]: scopedStudentIds }
+        },
+        order: [['id', 'DESC']]
+      });
+    } else {
+      const applicationRows = await Application.findAll({
+        attributes: ['StudentId'],
+        group: ['StudentId'],
+        raw: true
+      });
+      const studentIds = applicationRows.map((row) => row.StudentId).filter(Boolean);
+
+      if (studentIds.length === 0) {
+        return res.json([]);
+      }
+
+      students = await Student.findAll({
+        where: {
+          id: { [Op.in]: studentIds }
+        },
+        order: [['id', 'DESC']]
+      });
     }
-
-    const students = await Student.findAll({
-      where: {
-        id: { [Op.in]: studentIds }
-      },
-      order: [['id', 'DESC']]
-    });
     
     res.json(students.map(student => ({
       id: student.id,
@@ -48,8 +111,15 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/students/:id - Get student by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res) => {
   try {
+    if (req.user.role === 'WARDEN') {
+      const hasAccess = await canWardenAccessStudent(req.user.id, req.params.id);
+      if (!hasAccess) {
+        return res.status(403).json({ message: 'Access denied for this student' });
+      }
+    }
+
     const student = await Student.findByPk(req.params.id);
     
     if (!student) {

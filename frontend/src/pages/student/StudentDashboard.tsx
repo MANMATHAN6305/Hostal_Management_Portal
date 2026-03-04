@@ -20,6 +20,21 @@ const InfoField = ({ label, value }: { label: string; value: string | number | u
   </div>
 );
 
+const roomTypeLabelMap: Record<string, string> = {
+  SINGLE: 'Single',
+  DOUBLE: 'Double',
+  TRIPLE: 'Triple',
+  FOUR_BED: 'Four Bedded',
+  FIVE_BED: 'Five Bedded',
+  EIGHT_BED: 'Eight Bedded',
+  DORMITORY: 'Dormitory'
+};
+
+const formatRoomType = (roomType?: string) => {
+  if (!roomType) return 'N/A';
+  return roomTypeLabelMap[roomType] || roomType;
+};
+
 export default function StudentDashboard() {
   const [dashboard, setDashboard] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
@@ -73,6 +88,14 @@ export default function StudentDashboard() {
 
   const student = dashboard?.student;
   const room = dashboard?.room;
+  const warden = dashboard?.warden;
+  const occupancyValue =
+    room && Number.isFinite(Number(room.capacity))
+      ? `${Number(room.currentOccupancy || 0)}/${Number(room.capacity)} beds occupied`
+      : 'N/A';
+  const roomStatus = room?.status || (dashboard?.allocation?.status === 'ACTIVE' ? 'Allocated' : 'Available');
+  const semesterFee = room ? `\u20B9${Number(room.semesterFee || 0).toLocaleString()}` : 'N/A';
+  const assignedWardenName = warden?.name || 'N/A';
 
   return (
     <div className="space-y-8">
@@ -119,10 +142,12 @@ export default function StudentDashboard() {
             {room ? (
               <div className="space-y-0">
                 <InfoField label="Room Number" value={room.roomNumber} />
-                <InfoField label="Block/Building" value={room.blockName} />
-                <InfoField label="Room Type" value={room.roomType} />
-                <InfoField label="Occupancy" value={`${room.currentOccupancy || 0}/${room.capacity || '-'}`} />
-                <InfoField label="Status" value={room.status || 'Allocated'} />
+                <InfoField label="Block / Hostel Name" value={room.blockName} />
+                <InfoField label="Room Type" value={formatRoomType(room.roomType)} />
+                <InfoField label="Occupancy" value={occupancyValue} />
+                <InfoField label="Status" value={roomStatus} />
+                <InfoField label="Semester Fee" value={semesterFee} />
+                <InfoField label="Assigned Warden" value={assignedWardenName} />
               </div>
             ) : (
               <div className="text-center py-8">

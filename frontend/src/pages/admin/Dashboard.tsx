@@ -6,10 +6,10 @@ import { allocationsApi, roomsApi, studentsApi } from '@/lib/api';
 import type { Room } from '@/types';
 
 const quickActions = [
-  { title: 'New Allocation', href: '/allocations/add', icon: '📋', color: 'from-blue-500 to-blue-600' },
-  { title: 'Add Student', href: '/students/add', icon: '👥', color: 'from-green-500 to-green-600' },
-  { title: 'Add Room', href: '/rooms/add', icon: '🏠', color: 'from-purple-500 to-purple-600' },
-  { title: 'Manage Staff', href: '/staff', icon: '👔', color: 'from-orange-500 to-orange-600' }
+  { title: 'New Allocation', href: '/allocations/add', icon: '\uD83D\uDCCB', color: 'from-blue-500 to-blue-600' },
+  { title: 'Add Student', href: '/students/add', icon: '\uD83D\uDC65', color: 'from-green-500 to-green-600' },
+  { title: 'Add Room', href: '/rooms/add', icon: '\uD83C\uDFE0', color: 'from-purple-500 to-purple-600' },
+  { title: 'Manage Wardens', href: '/wardens', icon: '\uD83D\uDC54', color: 'from-orange-500 to-orange-600' }
 ];
 
 const StatCard = ({ label, value, icon, color }: { label: string; value: number; icon: string; color: string }) => (
@@ -78,20 +78,18 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg">
         <h1 className="text-3xl font-bold mb-2">Welcome back, {userName}</h1>
         <p className="text-blue-100">Manage your hostel operations efficiently</p>
       </div>
 
-      {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action) => (
-            <Link 
-              key={action.title} 
-              to={action.href} 
+            <Link
+              key={action.title}
+              to={action.href}
               className={`bg-gradient-to-br ${action.color} text-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-between group`}
             >
               <div>
@@ -103,18 +101,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Statistics */}
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Key Statistics</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard label="Total Rooms" value={stats.totalRooms} icon="🏠" color="from-blue-500 to-blue-600" />
-          <StatCard label="Available Rooms" value={stats.availableRooms} icon="✅" color="from-green-500 to-green-600" />
-          <StatCard label="Total Students" value={stats.totalStudents} icon="👥" color="from-purple-500 to-purple-600" />
-          <StatCard label="Active Allocations" value={stats.activeAllocations} icon="📋" color="from-orange-500 to-orange-600" />
+          <StatCard label="Total Rooms" value={stats.totalRooms} icon="\uD83C\uDFE0" color="from-blue-500 to-blue-600" />
+          <StatCard label="Available Rooms" value={stats.availableRooms} icon="\u2705" color="from-green-500 to-green-600" />
+          <StatCard label="Total Students" value={stats.totalStudents} icon="\uD83D\uDC65" color="from-purple-500 to-purple-600" />
+          <StatCard label="Active Allocations" value={stats.activeAllocations} icon="\uD83D\uDCCB" color="from-orange-500 to-orange-600" />
         </div>
       </div>
 
-      {/* Recent Allocations */}
       <Card>
         <div className="border-b border-gray-200 pb-4 mb-4 flex justify-between items-center">
           <CardTitle>Recent Allocations</CardTitle>
