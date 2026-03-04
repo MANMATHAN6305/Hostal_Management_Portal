@@ -39,9 +39,18 @@ const getFreeBeds = (room: Room) =>
 export default function AddAllocation() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [hostels, setHostels] = useState<ApiHostel[]>([]);
+  const [autoResult, setAutoResult] = useState<null | {
+    strategy: string;
+    allocatedCount: number;
+    unallocatedCount: number;
+    totalRequested: number;
+    message?: string;
+    unallocated?: Array<{ studentName?: string; reason?: string }>;
+  }>(null);
   const [formData, setFormData] = useState({
     studentId: '',
     gender: '',
@@ -50,6 +59,15 @@ export default function AddAllocation() {
     academicYear: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
     semester: 'Fall',
     status: 'ACTIVE',
+    allocationDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split('T')[0],
+    specialRequests: ''
+  });
+  const [autoFormData, setAutoFormData] = useState({
+    strategy: 'AUTO' as 'AUTO' | 'RANDOM',
+    limit: 100,
+    academicYear: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+    semester: 'Fall',
     allocationDate: new Date().toISOString().split('T')[0],
     endDate: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split('T')[0],
     specialRequests: ''
@@ -118,6 +136,41 @@ export default function AddAllocation() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAutoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setAutoFormData((prev) => ({
+      ...prev,
+      [name]: name === 'limit' ? Math.max(1, Number(value) || 1) : value
+    }));
+  };
+
+  const handleAutoAllocate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAutoLoading(true);
+    setAutoResult(null);
+
+    try {
+      const result = await allocationsApi.autoAllocate({
+        strategy: autoFormData.strategy,
+        limit: Number(autoFormData.limit),
+        academicYear: autoFormData.academicYear,
+        semester: autoFormData.semester,
+        allocationDate: autoFormData.allocationDate,
+        endDate: autoFormData.endDate,
+        specialRequests: autoFormData.specialRequests || undefined
+      });
+
+      setAutoResult(result);
+      await fetchData();
+      alert(result?.message || `Allocated ${result?.allocatedCount || 0} students successfully.`);
+    } catch (error: any) {
+      console.error('Failed to run auto allocation:', error);
+      alert(error?.response?.data?.message || error?.message || 'Failed to run auto allocation');
+    } finally {
+      setAutoLoading(false);
+    }
   };
 
   const selectedStudent = useMemo(
@@ -256,6 +309,141 @@ export default function AddAllocation() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Bulk Student Allocation (Auto / Random)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleAutoAllocate} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Allocation Strategy *</label>
+                <select
+                  name="strategy"
+                  value={autoFormData.strategy}
+                  onChange={handleAutoChange}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                  required
+                >
+                  <option value="AUTO">Auto (Best Fit)</option>
+                  <option value="RANDOM">Random</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Student Limit *</label>
+                <input
+                  type="number"
+                  name="limit"
+                  min={1}
+                  max={500}
+                  value={autoFormData.limit}
+                  onChange={handleAutoChange}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Academic Year *</label>
+                <select
+                  name="academicYear"
+                  value={autoFormData.academicYear}
+                  onChange={handleAutoChange}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                  required
+                >
+                  {academicYears.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Semester *</label>
+                <select
+                  name="semester"
+                  value={autoFormData.semester}
+                  onChange={handleAutoChange}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                  required
+                >
+                  <option value="Fall">Fall</option>
+                  <option value="Spring">Spring</option>
+                  <option value="Summer">Summer</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Allocation Date *</label>
+                <input
+                  type="date"
+                  name="allocationDate"
+                  value={autoFormData.allocationDate}
+                  onChange={handleAutoChange}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
+                <input
+                  type="date"
+                  name="endDate"
+                  value={autoFormData.endDate}
+                  onChange={handleAutoChange}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Special Requests (applies to all)</label>
+              <textarea
+                name="specialRequests"
+                value={autoFormData.specialRequests}
+                onChange={handleAutoChange}
+                rows={2}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                placeholder="Optional note for all generated allocations"
+              />
+            </div>
+
+            <div className="flex gap-4 pt-2 items-center">
+              <Button type="submit" disabled={autoLoading}>
+                {autoLoading ? 'Allocating...' : 'Run Bulk Allocation'}
+              </Button>
+              <span className="text-xs text-slate-500">
+                AUTO = best-fit room assignment, RANDOM = randomized room selection.
+              </span>
+            </div>
+          </form>
+
+          {autoResult && (
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-medium text-slate-800">{autoResult.message || 'Bulk allocation completed.'}</p>
+              <p className="text-sm text-slate-700 mt-1">
+                Requested: {autoResult.totalRequested} • Allocated: {autoResult.allocatedCount} • Unallocated: {autoResult.unallocatedCount}
+              </p>
+              {!!autoResult.unallocated?.length && (
+                <div className="mt-2 text-xs text-amber-700">
+                  {autoResult.unallocated.slice(0, 5).map((entry, index) => (
+                    <p key={index}>• {entry.studentName || 'Student'}: {entry.reason || 'Not allocated'}</p>
+                  ))}
+                  {autoResult.unallocated.length > 5 && <p>• +{autoResult.unallocated.length - 5} more not allocated</p>}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Create New Allocation</CardTitle>

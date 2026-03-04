@@ -4,6 +4,7 @@ const Allocation = require('../models/Allocation');
 const Room = require('../models/Room');
 const Student = require('../models/Student');
 const Hostel = require('../models/Hostel');
+const { sequelize } = require('../config/database');
 const { Op } = require('sequelize');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
@@ -54,15 +55,16 @@ const getWardenRoomWhere = (hostelScope) => {
   return { [Op.or]: scopeConditions };
 };
 
-const syncRoomOccupancy = async (roomId) => {
-  const room = await Room.findByPk(roomId);
+const syncRoomOccupancy = async (roomId, transaction = null) => {
+  const room = await Room.findByPk(roomId, transaction ? { transaction } : undefined);
   if (!room) return;
 
   const activeCount = await Allocation.count({
     where: {
       RoomId: room.id,
       status: 'ACTIVE'
-    }
+    },
+    ...(transaction ? { transaction } : {})
   });
 
   const occupied = Math.max(0, Math.min(Number(room.capacity) || 0, Number(activeCount) || 0));
@@ -71,7 +73,16 @@ const syncRoomOccupancy = async (roomId) => {
   await room.update({
     occupied,
     status
-  });
+  }, transaction ? { transaction } : undefined);
+};
+
+const shuffleArray = (items) => {
+  const copied = [...items];
+  for (let index = copied.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [copied[index], copied[randomIndex]] = [copied[randomIndex], copied[index]];
+  }
+  return copied;
 };
 
 // Helper function to format allocation response
@@ -268,6 +279,277 @@ router.post('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res
   } catch (error) {
     console.error('Create allocation error:', error);
     res.status(500).json({ message: 'Server error creating allocation' });
+  }
+});
+
+// POST /api/allocations/auto-allocate - Bulk random/auto allocation
+router.post('/auto-allocate', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res) => {
+  try {
+    const {
+      academicYear,
+      semester,
+      allocationDate,
+      endDate,
+      specialRequests,
+      strategy = 'AUTO',
+      limit = 100,
+      studentIds = []
+    } = req.body || {};
+
+    if (!academicYear || !semester) {
+      return res.status(400).json({
+        message: 'academicYear and semester are required.'
+      });
+    }
+
+    const normalizedStrategy = String(strategy || 'AUTO').toUpperCase();
+    if (!['AUTO', 'RANDOM'].includes(normalizedStrategy)) {
+      return res.status(400).json({ message: 'strategy must be AUTO or RANDOM.' });
+    }
+
+    const normalizedLimit = Math.max(1, Math.min(500, Number(limit) || 100));
+    const requestedStudentIds = Array.isArray(studentIds)
+      ? studentIds
+          .map((id) => Number(id))
+          .filter((id) => Number.isFinite(id) && id > 0)
+      : [];
+
+    const response = await sequelize.transaction(async (transaction) => {
+      let roomScopeWhere = null;
+
+      if (req.user.role === 'WARDEN') {
+        const hostelScope = await getWardenHostelScope(req.user.id);
+        roomScopeWhere = getWardenRoomWhere(hostelScope);
+
+        if (!roomScopeWhere) {
+          return {
+            strategy: normalizedStrategy,
+            academicYear,
+            semester,
+            allocatedCount: 0,
+            unallocatedCount: 0,
+            totalRequested: 0,
+            allocated: [],
+            unallocated: [],
+            message: 'No assigned hostel found for this warden.'
+          };
+        }
+      }
+
+      const studentWhere = {
+        gender: {
+          [Op.in]: ['MALE', 'FEMALE']
+        }
+      };
+
+      if (requestedStudentIds.length > 0) {
+        studentWhere.id = { [Op.in]: requestedStudentIds };
+      }
+
+      let candidateStudents = await Student.findAll({
+        where: studentWhere,
+        order: [['year', 'DESC'], ['id', 'ASC']],
+        transaction
+      });
+
+      if (normalizedStrategy === 'RANDOM') {
+        candidateStudents = shuffleArray(candidateStudents);
+      }
+
+      if (requestedStudentIds.length === 0) {
+        candidateStudents = candidateStudents.slice(0, normalizedLimit);
+      }
+
+      const studentIdsInScope = candidateStudents.map((student) => Number(student.id));
+      if (studentIdsInScope.length === 0) {
+        return {
+          strategy: normalizedStrategy,
+          academicYear,
+          semester,
+          allocatedCount: 0,
+          unallocatedCount: 0,
+          totalRequested: 0,
+          allocated: [],
+          unallocated: [],
+          message: 'No eligible students found for allocation.'
+        };
+      }
+
+      const existingAllocations = await Allocation.findAll({
+        where: {
+          StudentId: { [Op.in]: studentIdsInScope },
+          academicYear,
+          semester,
+          status: 'ACTIVE'
+        },
+        attributes: ['StudentId'],
+        transaction
+      });
+
+      const alreadyAllocatedStudentIds = new Set(
+        existingAllocations.map((allocation) => Number(allocation.StudentId))
+      );
+
+      const studentsToAllocate = candidateStudents.filter(
+        (student) => !alreadyAllocatedStudentIds.has(Number(student.id))
+      );
+
+      const roomWhereClauses = [
+        { status: { [Op.ne]: 'MAINTENANCE' } },
+        { gender: { [Op.in]: ['MALE', 'FEMALE'] } }
+      ];
+
+      if (roomScopeWhere) {
+        roomWhereClauses.push(roomScopeWhere);
+      }
+
+      const rooms = await Room.findAll({
+        where: {
+          [Op.and]: roomWhereClauses
+        },
+        attributes: ['id', 'roomNumber', 'capacity', 'status', 'gender'],
+        transaction
+      });
+
+      const roomIds = rooms.map((room) => Number(room.id));
+      const activeCountsRaw = roomIds.length > 0
+        ? await Allocation.findAll({
+            attributes: [
+              'RoomId',
+              [sequelize.fn('COUNT', sequelize.col('id')), 'activeCount']
+            ],
+            where: {
+              RoomId: { [Op.in]: roomIds },
+              status: 'ACTIVE'
+            },
+            group: ['RoomId'],
+            raw: true,
+            transaction
+          })
+        : [];
+
+      const activeCountByRoomId = new Map(
+        activeCountsRaw.map((entry) => [
+          Number(entry.RoomId),
+          Number(entry.activeCount || 0)
+        ])
+      );
+
+      const roomPoolByGender = {
+        MALE: [],
+        FEMALE: []
+      };
+
+      for (const room of rooms) {
+        const capacity = Number(room.capacity || 0);
+        const activeCount = activeCountByRoomId.get(Number(room.id)) || 0;
+        const availableBeds = Math.max(0, capacity - activeCount);
+
+        if (availableBeds <= 0) continue;
+        if (!roomPoolByGender[room.gender]) continue;
+
+        roomPoolByGender[room.gender].push({
+          id: Number(room.id),
+          roomNumber: room.roomNumber,
+          availableBeds,
+          capacity
+        });
+      }
+
+      if (normalizedStrategy === 'RANDOM') {
+        roomPoolByGender.MALE = shuffleArray(roomPoolByGender.MALE);
+        roomPoolByGender.FEMALE = shuffleArray(roomPoolByGender.FEMALE);
+      }
+
+      const allocated = [];
+      const unallocated = [];
+      const touchedRoomIds = new Set();
+
+      for (const student of candidateStudents) {
+        if (alreadyAllocatedStudentIds.has(Number(student.id))) {
+          unallocated.push({
+            studentId: Number(student.id),
+            studentName: `${student.firstName} ${student.lastName || ''}`.trim(),
+            reason: 'Student already has active allocation for this academic year/semester.'
+          });
+        }
+      }
+
+      for (const student of studentsToAllocate) {
+        const gender = student.gender;
+        const roomsForGender = roomPoolByGender[gender] || [];
+        const availableRooms = roomsForGender.filter((room) => room.availableBeds > 0);
+
+        if (availableRooms.length === 0) {
+          unallocated.push({
+            studentId: Number(student.id),
+            studentName: `${student.firstName} ${student.lastName || ''}`.trim(),
+            reason: `No available ${String(gender).toLowerCase()} room.`
+          });
+          continue;
+        }
+
+        let selectedRoom = availableRooms[0];
+
+        if (normalizedStrategy === 'AUTO') {
+          selectedRoom = availableRooms.reduce((best, current) => {
+            if (current.availableBeds < best.availableBeds) return current;
+            if (current.availableBeds === best.availableBeds && current.capacity < best.capacity) return current;
+            if (current.availableBeds === best.availableBeds && current.capacity === best.capacity && current.id < best.id) {
+              return current;
+            }
+            return best;
+          });
+        } else {
+          const randomIndex = Math.floor(Math.random() * availableRooms.length);
+          selectedRoom = availableRooms[randomIndex];
+        }
+
+        await Allocation.create({
+          RoomId: selectedRoom.id,
+          StudentId: Number(student.id),
+          academicYear,
+          semester,
+          status: 'ACTIVE',
+          allocationDate: allocationDate || new Date().toISOString().split('T')[0],
+          endDate: endDate || null,
+          specialRequests: specialRequests || null
+        }, { transaction });
+
+        selectedRoom.availableBeds -= 1;
+        touchedRoomIds.add(selectedRoom.id);
+
+        allocated.push({
+          studentId: Number(student.id),
+          studentName: `${student.firstName} ${student.lastName || ''}`.trim(),
+          roomId: selectedRoom.id,
+          roomNumber: selectedRoom.roomNumber
+        });
+      }
+
+      for (const roomId of touchedRoomIds) {
+        await syncRoomOccupancy(roomId, transaction);
+      }
+
+      return {
+        strategy: normalizedStrategy,
+        academicYear,
+        semester,
+        totalRequested: candidateStudents.length,
+        allocatedCount: allocated.length,
+        unallocatedCount: unallocated.length,
+        allocated,
+        unallocated,
+        message: allocated.length > 0
+          ? `Bulk allocation completed. Allocated ${allocated.length} students.`
+          : 'No allocations were created.'
+      };
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error('Auto allocation error:', error);
+    res.status(500).json({ message: 'Server error during auto allocation.' });
   }
 });
 

@@ -113,6 +113,16 @@ export const allocationsApi = {
   getAll: () => unwrap(api.get('/allocations')),
   getById: (id: number) => unwrap(api.get(`/allocations/${id}`)),
   create: (data: unknown) => unwrap(api.post('/allocations', data)),
+  autoAllocate: (data: {
+    academicYear: string;
+    semester: string;
+    allocationDate?: string;
+    endDate?: string;
+    specialRequests?: string;
+    strategy?: 'AUTO' | 'RANDOM';
+    limit?: number;
+    studentIds?: number[];
+  }) => unwrap(api.post('/allocations/auto-allocate', data)),
   update: (id: number, data: unknown) => unwrap(api.put(`/allocations/${id}`, data)),
   delete: async (id: number) => {
     await api.delete(`/allocations/${id}`);
