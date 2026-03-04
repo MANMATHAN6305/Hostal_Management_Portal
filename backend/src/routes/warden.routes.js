@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 const User = require('../models/User');
 const Hostel = require('../models/Hostel');
 const Room = require('../models/Room');
 const Student = require('../models/Student');
+const Allocation = require('../models/Allocation');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 
@@ -70,22 +72,63 @@ router.get('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
       // Get rooms in this hostel
       const rooms = await Room.findAll({
         where: { hostelId: hostel.id },
-        include: [{
-          model: Student,
-          as: 'students',
-          attributes: ['id', 'studentId', 'firstName', 'lastName', 'department']
-        }]
+        attributes: ['id', 'roomNumber', 'capacity']
       });
 
-      const totalStudents = await Student.count({
-        include: [{
-          model: Room,
-          where: { hostelId: hostel.id }
-        }]
+      const roomIds = rooms
+        .map((room) => Number(room.id))
+        .filter((roomId) => Number.isFinite(roomId));
+
+      let allocations = [];
+      if (roomIds.length > 0) {
+        allocations = await Allocation.findAll({
+          where: {
+            status: 'ACTIVE',
+            RoomId: { [Op.in]: roomIds }
+          },
+          attributes: ['RoomId', 'StudentId'],
+          include: [{
+            model: Student,
+            attributes: ['id', 'studentId', 'firstName', 'lastName', 'department']
+          }]
+        });
+      }
+
+      const studentsByRoom = new Map();
+      const uniqueStudentIds = new Set();
+
+      allocations.forEach((allocation) => {
+        const roomId = Number(allocation.RoomId);
+        if (!Number.isFinite(roomId)) return;
+
+        if (!studentsByRoom.has(roomId)) {
+          studentsByRoom.set(roomId, []);
+        }
+
+        if (allocation.Student) {
+          studentsByRoom.get(roomId).push(allocation.Student);
+          uniqueStudentIds.add(Number(allocation.Student.id));
+        }
       });
 
-      const occupiedRooms = rooms.filter(r => r.students && r.students.length > 0).length;
-      const availableRooms = rooms.filter(r => !r.students || r.students.length < r.capacity).length;
+      const roomStats = rooms.map((room) => {
+        const roomId = Number(room.id);
+        const students = studentsByRoom.get(roomId) || [];
+        const capacity = Number(room.capacity) || 0;
+        const currentOccupancy = students.length;
+
+        return {
+          id: room.id,
+          roomNumber: room.roomNumber,
+          capacity,
+          currentOccupancy,
+          status: capacity > 0 && currentOccupancy >= capacity ? 'Full' : 'Available',
+          students
+        };
+      });
+
+      const occupiedRooms = roomStats.filter((room) => room.currentOccupancy > 0).length;
+      const availableRooms = roomStats.filter((room) => room.currentOccupancy < room.capacity).length;
 
       hostelStats = {
         hostel: {
@@ -95,18 +138,11 @@ router.get('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
           gender: hostel.gender,
           totalRooms: hostel.totalRooms
         },
-        totalRooms: rooms.length,
+        totalRooms: roomStats.length,
         occupiedRooms,
         availableRooms,
-        totalStudents,
-        rooms: rooms.map(r => ({
-          id: r.id,
-          roomNumber: r.roomNumber,
-          capacity: r.capacity,
-          currentOccupancy: r.students?.length || 0,
-          status: r.students?.length >= r.capacity ? 'Full' : 'Available',
-          students: r.students || []
-        }))
+        totalStudents: uniqueStudentIds.size,
+        rooms: roomStats
       };
     }
 

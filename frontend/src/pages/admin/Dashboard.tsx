@@ -104,10 +104,10 @@ export default function Dashboard() {
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Key Statistics</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard label="Total Rooms" value={stats.totalRooms} icon="\uD83C\uDFE0" color="from-blue-500 to-blue-600" />
-          <StatCard label="Available Rooms" value={stats.availableRooms} icon="\u2705" color="from-green-500 to-green-600" />
-          <StatCard label="Total Students" value={stats.totalStudents} icon="\uD83D\uDC65" color="from-purple-500 to-purple-600" />
-          <StatCard label="Active Allocations" value={stats.activeAllocations} icon="\uD83D\uDCCB" color="from-orange-500 to-orange-600" />
+          <StatCard label="Total Rooms" value={stats.totalRooms} icon={'\uD83C\uDFE0'} color="from-blue-500 to-blue-600" />
+          <StatCard label="Available Rooms" value={stats.availableRooms} icon={'\u2705'} color="from-green-500 to-green-600" />
+          <StatCard label="Total Students" value={stats.totalStudents} icon={'\uD83D\uDC65'} color="from-purple-500 to-purple-600" />
+          <StatCard label="Active Allocations" value={stats.activeAllocations} icon={'\uD83D\uDCCB'} color="from-orange-500 to-orange-600" />
         </div>
       </div>
 

@@ -5,6 +5,7 @@ const Hostel = require('../models/Hostel');
 const User = require('../models/User');
 const Allocation = require('../models/Allocation');
 const { Op, fn, col } = require('sequelize');
+const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 const roomTypeCapacityMap = {
   SINGLE: 1,
@@ -94,7 +95,7 @@ const formatRoom = (room, occupancyMap = null, hostelData = null) => {
 };
 
 // GET /api/rooms - Get all rooms
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT'), async (req, res) => {
   try {
     const rooms = await Room.findAll({
       include: [
@@ -123,7 +124,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/rooms/available - Get available rooms
-router.get('/available', async (req, res) => {
+router.get('/available', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT'), async (req, res) => {
   try {
     const rooms = await Room.findAll({
       where: {
@@ -158,7 +159,7 @@ router.get('/available', async (req, res) => {
 });
 
 // GET /api/rooms/:id - Get room by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT'), async (req, res) => {
   try {
     const room = await Room.findByPk(req.params.id, {
       include: [
@@ -190,7 +191,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/rooms - Create new room
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, authorizeRoles('ADMIN'), async (req, res) => {
   try {
     const roomType = req.body.roomType || 'DOUBLE';
     const capacity = getCapacityFromRoomType(roomType, req.body.capacity);
@@ -241,7 +242,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/rooms/:id - Update room
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, authorizeRoles('ADMIN'), async (req, res) => {
   try {
     const room = await Room.findByPk(req.params.id);
     
@@ -300,7 +301,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/rooms/:id - Delete room
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, authorizeRoles('ADMIN'), async (req, res) => {
   try {
     const room = await Room.findByPk(req.params.id);
     

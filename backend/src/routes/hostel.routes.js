@@ -23,22 +23,22 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT'), async
     // Get actual room counts per hostel
     const roomCounts = await Room.findAll({
       attributes: [
-        'blockName',
+        'hostelId',
         [sequelize.fn('COUNT', sequelize.col('id')), 'actualRoomCount']
       ],
-      group: ['blockName']
+      group: ['hostelId']
     });
 
     // Create a map of room counts
     const roomCountMap = {};
     roomCounts.forEach(rc => {
-      roomCountMap[rc.blockName] = parseInt(rc.get('actualRoomCount'));
+      roomCountMap[Number(rc.hostelId)] = parseInt(rc.get('actualRoomCount'));
     });
 
     // Add actual room counts to hostels
     const hostelsWithCounts = hostels.map(hostel => {
       const hostelData = hostel.toJSON();
-      hostelData.actualRoomCount = roomCountMap[hostel.name] || 0;
+      hostelData.actualRoomCount = roomCountMap[Number(hostel.id)] || 0;
       return hostelData;
     });
 

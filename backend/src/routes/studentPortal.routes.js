@@ -7,6 +7,7 @@ const Allocation = require('../models/Allocation');
 const Complaint = require('../models/Complaint');
 const Menu = require('../models/Menu');
 const User = require('../models/User');
+const Hostel = require('../models/Hostel');
 const { verifyToken, isStudent } = require('../middleware/auth');
 
 const roomTypeCapacityMap = {
@@ -373,7 +374,7 @@ router.get('/dashboard', verifyToken, async (req, res) => {
       },
       include: [{
         model: Room,
-        attributes: ['id', 'roomNumber', 'roomType', 'capacity', 'occupied', 'floorNumber', 'blockName', 'status', 'pricePerNight', 'amenities']
+        attributes: ['id', 'roomNumber', 'roomType', 'capacity', 'occupied', 'floorNumber', 'blockName', 'status', 'pricePerNight', 'amenities', 'hostelId']
       }],
       order: [['createdAt', 'DESC']]
     });
@@ -387,23 +388,60 @@ router.get('/dashboard', verifyToken, async (req, res) => {
     const pendingComplaints = complaintStats.filter(c => c.status === 'PENDING').length;
     const totalComplaints = complaintStats.length;
 
-    // Get assigned warden info - find warden based on hostel name
+    // Get assigned warden info from allocated room's hostel
     let wardenInfo = null;
-    if (allocation?.Room?.blockName) {
-      // Try to find a warden associated with this hostel
-      const warden = await User.findOne({
-        where: { 
-          role: 'WARDEN',
-          isActive: true
-        },
-        attributes: ['id', 'fullName', 'email']
-      });
+    if (allocation?.Room) {
+      let hostel = null;
       
-      if (warden) {
+      // Try to find hostel by hostelId first
+      if (allocation.Room.hostelId) {
+        hostel = await Hostel.findByPk(allocation.Room.hostelId, {
+          include: [{
+            model: User,
+            as: 'warden',
+            attributes: ['id', 'fullName', 'email', 'phone']
+          }]
+        });
+      }
+      
+      // If not found by hostelId, try to match by blockName
+      if (!hostel && allocation.Room.blockName) {
+        hostel = await Hostel.findOne({
+          where: {
+            [Op.or]: [
+              { name: allocation.Room.blockName },
+              { name: { [Op.like]: `%${allocation.Room.blockName}%` } },
+              { blockCode: allocation.Room.blockName.split('-')[0] }
+            ]
+          },
+          include: [{
+            model: User,
+            as: 'warden',
+            attributes: ['id', 'fullName', 'email', 'phone']
+          }]
+        });
+      }
+      
+      // If still not found, try to match by room number prefix
+      if (!hostel && allocation.Room.roomNumber) {
+        const roomPrefix = allocation.Room.roomNumber.split('-')[0];
+        hostel = await Hostel.findOne({
+          where: {
+            blockCode: roomPrefix
+          },
+          include: [{
+            model: User,
+            as: 'warden',
+            attributes: ['id', 'fullName', 'email', 'phone']
+          }]
+        });
+      }
+      
+      if (hostel?.warden) {
         wardenInfo = {
-          name: warden.fullName,
-          email: warden.email,
-          phone: '+91 98765 43210' // Default phone since we don't have phone in User model
+          name: hostel.warden.fullName,
+          email: hostel.warden.email,
+          phone: hostel.warden.phone || null
         };
       }
     }

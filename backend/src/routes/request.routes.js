@@ -47,31 +47,63 @@ const parseDateInput = (value) => {
   return parsed;
 };
 
-const getWardenHostelNames = async (wardenId) => {
+const getWardenHostelScope = async (wardenId) => {
   const hostels = await Hostel.findAll({
     where: { wardenId },
-    attributes: ['name'],
+    attributes: ['id', 'name'],
     raw: true
   });
 
-  return hostels
-    .map((hostel) => String(hostel.name || '').trim())
-    .filter(Boolean);
+  return {
+    hostelIds: hostels
+      .map((hostel) => Number(hostel.id))
+      .filter((hostelId) => Number.isFinite(hostelId) && hostelId > 0),
+    hostelNames: hostels
+      .map((hostel) => String(hostel.name || '').trim())
+      .filter(Boolean)
+  };
+};
+
+const getWardenRoomWhere = (hostelScope) => {
+  const scopeConditions = [];
+
+  if (hostelScope.hostelIds.length > 0) {
+    scopeConditions.push({
+      hostelId: {
+        [Op.in]: hostelScope.hostelIds
+      }
+    });
+  }
+
+  if (hostelScope.hostelNames.length > 0) {
+    scopeConditions.push({
+      blockName: {
+        [Op.in]: hostelScope.hostelNames
+      }
+    });
+  }
+
+  if (scopeConditions.length === 0) {
+    return null;
+  }
+
+  if (scopeConditions.length === 1) {
+    return scopeConditions[0];
+  }
+
+  return { [Op.or]: scopeConditions };
 };
 
 const getWardenStudentIds = async (wardenId) => {
-  const hostelNames = await getWardenHostelNames(wardenId);
-  if (hostelNames.length === 0) return [];
+  const hostelScope = await getWardenHostelScope(wardenId);
+  const roomWhere = getWardenRoomWhere(hostelScope);
+  if (!roomWhere) return [];
 
   const allocations = await Allocation.findAll({
     where: { status: 'ACTIVE' },
     include: [{
       model: Room,
-      where: {
-        blockName: {
-          [Op.in]: hostelNames
-        }
-      },
+      where: roomWhere,
       attributes: []
     }],
     attributes: ['StudentId'],

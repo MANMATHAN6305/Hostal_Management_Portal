@@ -7,16 +7,71 @@ const Hostel = require('../models/Hostel');
 const { Op } = require('sequelize');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
-const getWardenHostelNames = async (wardenId) => {
+const getWardenHostelScope = async (wardenId) => {
   const hostels = await Hostel.findAll({
     where: { wardenId },
-    attributes: ['name'],
+    attributes: ['id', 'name'],
     raw: true
   });
 
-  return hostels
-    .map((hostel) => String(hostel.name || '').trim())
-    .filter(Boolean);
+  return {
+    hostelIds: hostels
+      .map((hostel) => Number(hostel.id))
+      .filter((hostelId) => Number.isFinite(hostelId) && hostelId > 0),
+    hostelNames: hostels
+      .map((hostel) => String(hostel.name || '').trim())
+      .filter(Boolean)
+  };
+};
+
+const getWardenRoomWhere = (hostelScope) => {
+  const scopeConditions = [];
+
+  if (hostelScope.hostelIds.length > 0) {
+    scopeConditions.push({
+      hostelId: {
+        [Op.in]: hostelScope.hostelIds
+      }
+    });
+  }
+
+  if (hostelScope.hostelNames.length > 0) {
+    scopeConditions.push({
+      blockName: {
+        [Op.in]: hostelScope.hostelNames
+      }
+    });
+  }
+
+  if (scopeConditions.length === 0) {
+    return null;
+  }
+
+  if (scopeConditions.length === 1) {
+    return scopeConditions[0];
+  }
+
+  return { [Op.or]: scopeConditions };
+};
+
+const syncRoomOccupancy = async (roomId) => {
+  const room = await Room.findByPk(roomId);
+  if (!room) return;
+
+  const activeCount = await Allocation.count({
+    where: {
+      RoomId: room.id,
+      status: 'ACTIVE'
+    }
+  });
+
+  const occupied = Math.max(0, Math.min(Number(room.capacity) || 0, Number(activeCount) || 0));
+  const status = room.status === 'MAINTENANCE' ? 'MAINTENANCE' : (occupied >= room.capacity ? 'OCCUPIED' : 'AVAILABLE');
+
+  await room.update({
+    occupied,
+    status
+  });
 };
 
 // Helper function to format allocation response
@@ -44,8 +99,10 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res)
     ];
 
     if (req.user.role === 'WARDEN') {
-      const hostelNames = await getWardenHostelNames(req.user.id);
-      if (hostelNames.length === 0) {
+      const hostelScope = await getWardenHostelScope(req.user.id);
+      const roomWhere = getWardenRoomWhere(hostelScope);
+
+      if (!roomWhere) {
         return res.json([]);
       }
 
@@ -53,11 +110,7 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res)
         {
           model: Room,
           attributes: ['roomNumber', 'blockName'],
-          where: {
-            blockName: {
-              [Op.in]: hostelNames
-            }
-          }
+          where: roomWhere
         },
         { model: Student, attributes: ['firstName', 'lastName'] }
       ];
@@ -81,8 +134,9 @@ router.get('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, r
     let allocation = null;
 
     if (req.user.role === 'WARDEN') {
-      const hostelNames = await getWardenHostelNames(req.user.id);
-      if (hostelNames.length === 0) {
+      const hostelScope = await getWardenHostelScope(req.user.id);
+      const roomWhere = getWardenRoomWhere(hostelScope);
+      if (!roomWhere) {
         return res.status(404).json({ message: 'Allocation not found' });
       }
 
@@ -92,11 +146,7 @@ router.get('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, r
           {
             model: Room,
             attributes: ['roomNumber', 'blockName'],
-            where: {
-              blockName: {
-                [Op.in]: hostelNames
-              }
-            }
+            where: roomWhere
           },
           { model: Student, attributes: ['firstName', 'lastName'] }
         ]
@@ -122,7 +172,7 @@ router.get('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, r
 });
 
 // POST /api/allocations - Create new allocation
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res) => {
   try {
     const { roomId, studentId, academicYear, semester, allocationDate, endDate, specialRequests } = req.body;
 
@@ -130,6 +180,25 @@ router.post('/', async (req, res) => {
     const room = await Room.findByPk(roomId);
     if (!room) {
       return res.status(404).json({ message: 'Room not found' });
+    }
+
+    if (req.user.role === 'WARDEN') {
+      const hostelScope = await getWardenHostelScope(req.user.id);
+      const roomWhere = getWardenRoomWhere(hostelScope);
+      if (!roomWhere) {
+        return res.status(403).json({ message: 'No assigned hostel found for this warden.' });
+      }
+
+      const canAccessRoom = await Room.findOne({
+        where: {
+          id: room.id,
+          ...roomWhere
+        }
+      });
+
+      if (!canAccessRoom) {
+        return res.status(403).json({ message: 'You can only allocate rooms in your assigned hostels.' });
+      }
     }
 
     const student = await Student.findByPk(studentId);
@@ -184,13 +253,7 @@ router.post('/', async (req, res) => {
 
     // Step 5: Update room occupied count and status only for active allocations
     if (allocation.status === 'ACTIVE') {
-      const newOccupied = room.occupied + 1;
-      const newStatus = newOccupied >= room.capacity ? 'OCCUPIED' : 'AVAILABLE';
-
-      await room.update({
-        occupied: newOccupied,
-        status: newStatus
-      });
+      await syncRoomOccupancy(room.id);
     }
     
     // Fetch the allocation with related data
@@ -209,7 +272,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/allocations/:id - Update allocation
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res) => {
   try {
     const allocation = await Allocation.findByPk(req.params.id);
     
@@ -232,6 +295,25 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ message: 'Student gender must be set before allocation.' });
     }
 
+    if (req.user.role === 'WARDEN') {
+      const hostelScope = await getWardenHostelScope(req.user.id);
+      const roomWhere = getWardenRoomWhere(hostelScope);
+      if (!roomWhere) {
+        return res.status(403).json({ message: 'No assigned hostel found for this warden.' });
+      }
+
+      const isCurrentRoomAccessible = await Room.findOne({
+        where: {
+          id: oldRoomId,
+          ...roomWhere
+        }
+      });
+
+      if (!isCurrentRoomAccessible) {
+        return res.status(403).json({ message: 'You can only manage allocations in your assigned hostels.' });
+      }
+    }
+
     // Handle room change
     if (newRoomId !== oldRoomId) {
       // Check if new room is available
@@ -249,48 +331,25 @@ router.put('/:id', async (req, res) => {
         return res.status(400).json({ message: `Selected room is ${newRoom.gender.toLowerCase()} only.` });
       }
 
-      // Release old room (if allocation was active)
-      if (oldStatus === 'ACTIVE') {
-        const oldRoom = await Room.findByPk(oldRoomId);
-        if (oldRoom) {
-          const oldOccupied = Math.max(0, oldRoom.occupied - 1);
-          await oldRoom.update({
-            occupied: oldOccupied,
-            status: oldOccupied < oldRoom.capacity ? 'AVAILABLE' : 'OCCUPIED'
-          });
-        }
-      }
+      if (req.user.role === 'WARDEN') {
+        const hostelScope = await getWardenHostelScope(req.user.id);
+        const roomWhere = getWardenRoomWhere(hostelScope);
+        const isNewRoomAccessible = roomWhere ? await Room.findOne({
+          where: {
+            id: newRoom.id,
+            ...roomWhere
+          }
+        }) : null;
 
-      // Occupy new room (if new status is active)
-      if (newStatus === 'ACTIVE') {
-        const newOccupied = newRoom.occupied + 1;
-        await newRoom.update({
-          occupied: newOccupied,
-          status: newOccupied >= newRoom.capacity ? 'OCCUPIED' : 'AVAILABLE'
-        });
+        if (!isNewRoomAccessible) {
+          return res.status(403).json({ message: 'New room must belong to your assigned hostels.' });
+        }
       }
     } else if (newStatus !== oldStatus) {
       // Status change without room change
       const room = await Room.findByPk(oldRoomId);
-      if (room) {
-        if (oldStatus === 'ACTIVE' && newStatus !== 'ACTIVE') {
-          // Releasing room (ACTIVE -> VACATED/PENDING)
-          const newOccupied = Math.max(0, room.occupied - 1);
-          await room.update({
-            occupied: newOccupied,
-            status: newOccupied < room.capacity ? 'AVAILABLE' : 'OCCUPIED'
-          });
-        } else if (oldStatus !== 'ACTIVE' && newStatus === 'ACTIVE') {
-          // Occupying room (VACATED/PENDING -> ACTIVE)
-          if (room.occupied >= room.capacity) {
-            return res.status(400).json({ message: 'Room is fully occupied. Cannot reactivate allocation.' });
-          }
-          const newOccupied = room.occupied + 1;
-          await room.update({
-            occupied: newOccupied,
-            status: newOccupied >= room.capacity ? 'OCCUPIED' : 'AVAILABLE'
-          });
-        }
+      if (room && oldStatus !== 'ACTIVE' && newStatus === 'ACTIVE' && room.occupied >= room.capacity) {
+        return res.status(400).json({ message: 'Room is fully occupied. Cannot reactivate allocation.' });
       }
     } else {
       const currentRoom = await Room.findByPk(oldRoomId);
@@ -309,6 +368,13 @@ router.put('/:id', async (req, res) => {
       endDate: req.body.endDate,
       specialRequests: req.body.specialRequests
     });
+
+    if (newRoomId !== oldRoomId) {
+      await syncRoomOccupancy(oldRoomId);
+      await syncRoomOccupancy(newRoomId);
+    } else if (newStatus !== oldStatus) {
+      await syncRoomOccupancy(oldRoomId);
+    }
     
     // Fetch the updated allocation with related data
     const updatedAllocation = await Allocation.findByPk(allocation.id, {
@@ -326,7 +392,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/allocations/:id - Delete allocation
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res) => {
   try {
     const allocation = await Allocation.findByPk(req.params.id);
     
@@ -334,20 +400,37 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Allocation not found' });
     }
 
-    // If allocation was active, update room occupancy
-    if (allocation.status === 'ACTIVE') {
-      const room = await Room.findByPk(allocation.RoomId);
-      if (room) {
-        const newOccupied = Math.max(0, room.occupied - 1);
-        const newStatus = newOccupied < room.capacity ? 'AVAILABLE' : 'OCCUPIED';
-        await room.update({
-          occupied: newOccupied,
-          status: newStatus
-        });
+    if (req.user.role === 'WARDEN') {
+      const hostelScope = await getWardenHostelScope(req.user.id);
+      const roomWhere = getWardenRoomWhere(hostelScope);
+      if (!roomWhere) {
+        return res.status(403).json({ message: 'No assigned hostel found for this warden.' });
+      }
+
+      const canAccessAllocation = await Allocation.findOne({
+        where: { id: allocation.id },
+        include: [{
+          model: Room,
+          required: true,
+          where: roomWhere,
+          attributes: ['id']
+        }]
+      });
+
+      if (!canAccessAllocation) {
+        return res.status(403).json({ message: 'You can only delete allocations in your assigned hostels.' });
       }
     }
+
+    // If allocation was active, update room occupancy
+    const previousRoomId = Number(allocation.RoomId);
     
     await allocation.destroy();
+
+    if (allocation.status === 'ACTIVE') {
+      await syncRoomOccupancy(previousRoomId);
+    }
+
     res.status(204).send();
   } catch (error) {
     console.error('Delete allocation error:', error);

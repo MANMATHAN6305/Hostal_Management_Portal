@@ -95,18 +95,36 @@ export default function StudentDashboard() {
       : 'N/A';
   const roomStatus = room?.status || (dashboard?.allocation?.status === 'ACTIVE' ? 'Allocated' : 'Available');
   const semesterFee = room ? `\u20B9${Number(room.semesterFee || 0).toLocaleString()}` : 'N/A';
-  const assignedWardenName = warden?.name || 'N/A';
+  const assignedWardenName = warden?.name || 'Warden not assigned.';
+  const assignedWardenPhone = warden?.phone || 'N/A';
+  const hasAssignedWarden = Boolean(warden?.name);
 
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
-        <h1 className="text-3xl font-bold mb-2">
-          Welcome, {student?.firstName} {student?.lastName}
-        </h1>
-        <p className="text-blue-100">
-          {student?.department} • Year {student?.year} • ID: {student?.studentId}
-        </p>
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">
+              Welcome, {student?.firstName} {student?.lastName}
+            </h1>
+            <p className="text-blue-100">
+              {student?.department} • Year {student?.year} • ID: {student?.studentId}
+            </p>
+          </div>
+
+          <div className="lg:text-right bg-white/10 rounded-xl px-4 py-3 backdrop-blur-sm lg:min-w-[280px]">
+            <p className="text-xs uppercase tracking-wide text-blue-100 mb-1">Assigned Warden</p>
+            {hasAssignedWarden ? (
+              <>
+                <p className="text-lg font-semibold text-white">{assignedWardenName}</p>
+                <p className="text-sm text-blue-100">{assignedWardenPhone}</p>
+              </>
+            ) : (
+              <p className="text-sm font-medium text-blue-100">Warden not assigned.</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}

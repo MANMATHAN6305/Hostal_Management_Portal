@@ -33,7 +33,7 @@ const initialForm: ApplicationForm = {
   guardianAddress: ''
 };
 
-const FormInput = ({ label, value, onChange, type = 'text', placeholder = '', required = false }: any) => (
+const FormInput = ({ label, value, onChange, type = 'text', placeholder = '', required = false, pattern, maxLength }: any) => (
   <div className="flex flex-col">
     <label className="text-sm font-medium text-gray-700 mb-2">
       {label} {required && <span className="text-red-500">*</span>}
@@ -44,6 +44,8 @@ const FormInput = ({ label, value, onChange, type = 'text', placeholder = '', re
       placeholder={placeholder}
       value={value}
       onChange={onChange}
+      pattern={pattern}
+      maxLength={maxLength}
     />
   </div>
 );
@@ -325,8 +327,10 @@ export default function ApplyHostel() {
                 <FormInput 
                   label="Mobile Number" 
                   value={form.mobileNumber} 
-                  onChange={(e: any) => onChange('mobileNumber', e.target.value)} 
-                  placeholder="e.g., +91 XXXXX XXXXX"
+                  onChange={(e: any) => onChange('mobileNumber', e.target.value.replace(/\D/g, ''))} 
+                  placeholder="e.g., 9876543210"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
                   required
                 />
               </div>
@@ -343,18 +347,25 @@ export default function ApplyHostel() {
                   placeholder="Enter guardian's name"
                   required
                 />
-                <FormInput 
+                <FormSelect 
                   label="Relationship" 
                   value={form.relationship} 
-                  onChange={(e: any) => onChange('relationship', e.target.value)} 
-                  placeholder="e.g., Father, Mother"
+                  onChange={(e: any) => onChange('relationship', e.target.value)}
+                  options={[
+                    { value: '', label: 'Select Relationship' },
+                    { value: 'Father', label: 'Father' },
+                    { value: 'Mother', label: 'Mother' },
+                    { value: 'Guardian', label: 'Guardian' }
+                  ]}
                   required
                 />
                 <FormInput 
                   label="Contact Number" 
                   value={form.guardianContactNumber} 
-                  onChange={(e: any) => onChange('guardianContactNumber', e.target.value)} 
-                  placeholder="e.g., +91 XXXXX XXXXX"
+                  onChange={(e: any) => onChange('guardianContactNumber', e.target.value.replace(/\D/g, ''))} 
+                  placeholder="e.g., 9876543210"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
                   required
                 />
                 <FormTextarea 
@@ -389,14 +400,6 @@ export default function ApplyHostel() {
                   Reg: {latestApplication.registerNumber} • {latestApplication.department} • Year {latestApplication.yearOfStudy}
                 </p>
               </div>
-              <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
-                latestApplication.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                latestApplication.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                latestApplication.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {latestApplication.status}
-              </span>
             </div>
 
             <div className="flex gap-3">

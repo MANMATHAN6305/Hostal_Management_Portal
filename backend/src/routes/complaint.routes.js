@@ -9,6 +9,7 @@ const Room = require('../models/Room');
 const Hostel = require('../models/Hostel');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
+const { Op } = require('sequelize');
 
 let complaintSchemaReady = false;
 
@@ -16,6 +17,53 @@ const categoryToStaffRole = {
   ELECTRICAL: 'ELECTRICIAN',
   CLEANING: 'CLEANER',
   MAINTENANCE: 'CARETAKER'
+};
+
+const getWardenHostelScope = async (wardenId) => {
+  const hostels = await Hostel.findAll({
+    where: { wardenId },
+    attributes: ['id', 'name'],
+    raw: true
+  });
+
+  return {
+    hostelIds: hostels
+      .map((hostel) => Number(hostel.id))
+      .filter((hostelId) => Number.isFinite(hostelId) && hostelId > 0),
+    hostelNames: hostels
+      .map((hostel) => String(hostel.name || '').trim())
+      .filter(Boolean)
+  };
+};
+
+const getWardenRoomWhere = (hostelScope) => {
+  const scopeConditions = [];
+
+  if (hostelScope.hostelIds.length > 0) {
+    scopeConditions.push({
+      hostelId: {
+        [Op.in]: hostelScope.hostelIds
+      }
+    });
+  }
+
+  if (hostelScope.hostelNames.length > 0) {
+    scopeConditions.push({
+      blockName: {
+        [Op.in]: hostelScope.hostelNames
+      }
+    });
+  }
+
+  if (scopeConditions.length === 0) {
+    return null;
+  }
+
+  if (scopeConditions.length === 1) {
+    return scopeConditions[0];
+  }
+
+  return { [Op.or]: scopeConditions };
 };
 
 const canViewComplaint = async (complaint, reqUser, studentId = null) => {
@@ -32,20 +80,16 @@ const canViewComplaint = async (complaint, reqUser, studentId = null) => {
     
     // Check if the student is in one of this warden's hostels
     try {
-      const wardenHostels = await Hostel.findAll({
-        where: { wardenId: currentUserId },
-        attributes: ['name']
-      });
-      
-      if (wardenHostels.length === 0) return false;
-      
-      const hostelNames = wardenHostels.map(h => h.name);
+      const hostelScope = await getWardenHostelScope(currentUserId);
+      const roomWhere = getWardenRoomWhere(hostelScope);
+
+      if (!roomWhere) return false;
       
       const allocation = await Allocation.findOne({
         where: { StudentId: complaintStudentId, status: 'ACTIVE' },
         include: [{
           model: Room,
-          where: { blockName: hostelNames },
+          where: roomWhere,
           attributes: ['blockName']
         }]
       });
@@ -68,15 +112,23 @@ const findWardenForStudent = async (studentId) => {
     // Get the student's active allocation
     const allocation = await Allocation.findOne({
       where: { StudentId: studentId, status: 'ACTIVE' },
-      include: [{ model: Room, attributes: ['blockName'] }]
+      include: [{ model: Room, attributes: ['blockName', 'hostelId'] }]
     });
 
     if (!allocation || !allocation.Room) return null;
 
     // Find the hostel by blockName and get its warden
-    const hostel = await Hostel.findOne({
-      where: { name: allocation.Room.blockName }
-    });
+    let hostel = null;
+
+    if (allocation.Room.hostelId) {
+      hostel = await Hostel.findByPk(allocation.Room.hostelId);
+    }
+
+    if (!hostel) {
+      hostel = await Hostel.findOne({
+        where: { name: allocation.Room.blockName }
+      });
+    }
 
     return hostel?.wardenId || null;
   } catch (error) {
@@ -159,12 +211,20 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT', 'STAFF
       // Get all hostels assigned to this warden
       const wardenHostels = await Hostel.findAll({
         where: { wardenId: req.user.id },
-        attributes: ['name']
+        attributes: ['id', 'name']
       });
       
-      const hostelNames = wardenHostels.map(h => h.name);
+      const hostelScope = {
+        hostelIds: wardenHostels
+          .map((hostel) => Number(hostel.id))
+          .filter((hostelId) => Number.isFinite(hostelId) && hostelId > 0),
+        hostelNames: wardenHostels
+          .map((hostel) => String(hostel.name || '').trim())
+          .filter(Boolean)
+      };
+      const roomWhere = getWardenRoomWhere(hostelScope);
       
-      if (hostelNames.length === 0) {
+      if (!roomWhere) {
         // Warden has no hostels assigned, show no complaints
         complaints = [];
       } else {
@@ -173,7 +233,7 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT', 'STAFF
           where: { status: 'ACTIVE' },
           include: [{
             model: Room,
-            where: { blockName: hostelNames },
+            where: roomWhere,
             attributes: ['blockName']
           }],
           attributes: ['StudentId']
