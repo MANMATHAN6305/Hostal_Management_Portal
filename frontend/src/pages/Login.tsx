@@ -104,7 +104,7 @@ export default function Login() {
 
   const handleGoogleSignIn = () => {
     // Redirect to backend Google OAuth endpoint
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    window.location.href = 'https://hostal-management-portal-backend.onrender.com/api/auth/google';
   };
 
   return (
