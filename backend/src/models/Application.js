@@ -90,9 +90,9 @@ const Application = sequelize.define('Application', {
   }
 });
 
-Student.hasMany(Application);
-Application.belongsTo(Student);
-Hostel.hasMany(Application);
-Application.belongsTo(Hostel);
+Student.hasMany(Application, { constraints: false });
+Application.belongsTo(Student, { constraints: false });
+Hostel.hasMany(Application, { constraints: false });
+Application.belongsTo(Hostel, { constraints: false });
 
 module.exports = Application;

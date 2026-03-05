@@ -47,9 +47,9 @@ const Request = sequelize.define('Request', {
   }
 });
 
-Student.hasMany(Request);
-Request.belongsTo(Student);
-User.hasMany(Request, { foreignKey: 'handledById', as: 'HandledRequests' });
-Request.belongsTo(User, { foreignKey: 'handledById', as: 'HandledBy' });
+Student.hasMany(Request, { constraints: false });
+Request.belongsTo(Student, { constraints: false });
+User.hasMany(Request, { foreignKey: 'handledById', as: 'HandledRequests', constraints: false });
+Request.belongsTo(User, { foreignKey: 'handledById', as: 'HandledBy', constraints: false });
 
 module.exports = Request;

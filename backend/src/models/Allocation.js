@@ -31,10 +31,10 @@ const Allocation = sequelize.define('Allocation', {
 });
 
 // Associations
-Student.hasMany(Allocation);
-Allocation.belongsTo(Student);
+Student.hasMany(Allocation, { constraints: false });
+Allocation.belongsTo(Student, { constraints: false });
 
-Room.hasMany(Allocation);
-Allocation.belongsTo(Room);
+Room.hasMany(Allocation, { constraints: false });
+Allocation.belongsTo(Room, { constraints: false });
 
 module.exports = Allocation;

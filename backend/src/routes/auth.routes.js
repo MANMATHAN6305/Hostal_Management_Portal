@@ -7,6 +7,9 @@ const User = require('../models/User');
 const Student = require('../models/Student');
 const { generateToken, verifyToken } = require('../middleware/auth');
 
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+const GOOGLE_FAILURE_REDIRECT = `${FRONTEND_URL}/login?error=google_auth_failed`;
+
 // Configure Google OAuth Strategy
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'your-google-client-id',
@@ -67,7 +70,7 @@ router.get('/google', passport.authenticate('google', {
 }));
 
 router.get('/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: 'http://localhost:5173/login?error=google_auth_failed' }),
+  passport.authenticate('google', { session: false, failureRedirect: GOOGLE_FAILURE_REDIRECT }),
   async (req, res) => {
     try {
       const user = req.user;
@@ -95,10 +98,10 @@ router.get('/google/callback',
         params.append('studentId', studentId.toString());
       }
       
-      res.redirect(`http://localhost:5173/login?${params.toString()}`);
+      res.redirect(`${FRONTEND_URL}/login?${params.toString()}`);
     } catch (error) {
       console.error('Google callback error:', error);
-      res.redirect('http://localhost:5173/login?error=google_auth_failed');
+      res.redirect(GOOGLE_FAILURE_REDIRECT);
     }
   }
 );

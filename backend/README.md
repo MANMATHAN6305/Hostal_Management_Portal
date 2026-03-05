@@ -36,8 +36,12 @@ This is the Node.js/Express.js backend for the Hostel Management Portal, replaci
    DB_NAME=hostel_management_db
    DB_USER=root
    DB_PASSWORD=
-   FRONTEND_URL=http://localhost:3000
+   FRONTEND_URL=http://localhost:5173
+   DB_SYNC=true
    ```
+
+   For deployment, set `FRONTEND_URL` to your frontend domain (for example: `https://hostal-management-portal.onrender.com`).
+   For production deployments, set `DB_SYNC=false` to avoid runtime schema sync conflicts.
 
 4. Start the server:
    ```bash

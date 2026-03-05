@@ -26,11 +26,7 @@ const Hostel = sequelize.define('Hostel', {
   },
   wardenId: {
     type: DataTypes.BIGINT,
-    allowNull: true,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
+    allowNull: true
   }
 });
 

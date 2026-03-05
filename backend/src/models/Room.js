@@ -52,11 +52,7 @@ const Room = sequelize.define('Room', {
   },
   hostelId: {
     type: DataTypes.BIGINT,
-    allowNull: true,
-    references: {
-      model: 'Hostels',
-      key: 'id'
-    }
+    allowNull: true
   }
 });
 

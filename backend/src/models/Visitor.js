@@ -30,7 +30,7 @@ const Visitor = sequelize.define('Visitor', {
   }
 });
 
-Student.hasMany(Visitor);
-Visitor.belongsTo(Student);
+Student.hasMany(Visitor, { constraints: false });
+Visitor.belongsTo(Student, { constraints: false });
 
 module.exports = Visitor;

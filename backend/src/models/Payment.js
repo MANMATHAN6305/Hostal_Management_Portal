@@ -30,7 +30,7 @@ const Payment = sequelize.define('Payment', {
   }
 });
 
-Student.hasMany(Payment);
-Payment.belongsTo(Student);
+Student.hasMany(Payment, { constraints: false });
+Payment.belongsTo(Student, { constraints: false });
 
 module.exports = Payment;
