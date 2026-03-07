@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '@/lib/api';
 
+const getGoogleAuthUrl = () => {
+  const apiBase =
+    (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ||
+    'https://hostel-portal-backend.onrender.com/api';
+  return `${apiBase.replace(/\/+$/, '')}/auth/google`;
+};
+
 export default function Register() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -86,8 +93,8 @@ export default function Register() {
   };
 
   const handleGoogleSignIn = () => {
-    // Redirect to backend Google OAuth endpoint
-    window.location.href = 'https://hostal-management-portal-backend.onrender.com/api/auth/google';
+    // Start OAuth through backend; it will redirect to Google, then back to /login.
+    window.location.assign(getGoogleAuthUrl());
   };
 
   const fieldClass =

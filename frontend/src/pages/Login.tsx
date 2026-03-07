@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/lib/api';
 
+const getGoogleAuthUrl = () => {
+  const apiBase =
+    (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ||
+    'https://hostel-portal-backend.onrender.com/api';
+  return `${apiBase.replace(/\/+$/, '')}/auth/google`;
+};
+
 export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -103,8 +110,8 @@ export default function Login() {
   };
 
   const handleGoogleSignIn = () => {
-    // Redirect to backend Google OAuth endpoint
-    window.location.href = 'https://hostal-management-portal-backend.onrender.com/api/auth/google';
+    // Start OAuth through backend; it will redirect to Google, then back to /login.
+    window.location.assign(getGoogleAuthUrl());
   };
 
   const fieldClass =
