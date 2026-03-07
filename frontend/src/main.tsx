@@ -1,27 +1,28 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 
-const migrateToHashRouteIfNeeded = () => {
+const REDIRECT_PARAM = '__redirect'
+
+const restoreRedirectedPath = () => {
   if (typeof window === 'undefined') return
 
-  const { origin, pathname, search, hash } = window.location
-  const hasAppHashRoute = hash.startsWith('#/')
+  const url = new URL(window.location.href)
+  const redirectTarget = url.searchParams.get(REDIRECT_PARAM)
+  if (!redirectTarget) return
 
-  // If user opens a non-hash route directly, convert it to hash-based routing.
-  if (!hasAppHashRoute && pathname !== '/') {
-    window.location.replace(`${origin}/#${pathname}${search}`)
-  }
+  const targetUrl = new URL(redirectTarget, window.location.origin)
+  window.history.replaceState({}, '', `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`)
 }
 
-migrateToHashRouteIfNeeded()
+restoreRedirectedPath()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <HashRouter>
+    <BrowserRouter>
       <App />
-    </HashRouter>
+    </BrowserRouter>
   </React.StrictMode>,
 )
