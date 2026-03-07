@@ -8,8 +8,10 @@ import { roomsApi, adminApi } from '@/lib/api';
 interface Hostel {
   id: number;
   name: string;
+  blockCode?: string | null;
   gender: 'MALE' | 'FEMALE' | 'COED';
   totalRooms: number;
+  actualRoomCount?: number;
   warden?: {
     id: number;
     fullName: string;
@@ -235,8 +237,16 @@ export default function EditRoom() {
                       </span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-gray-600">Block Code:</span>
+                      <span className="font-medium text-gray-900">{selectedHostel.blockCode || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-gray-600">Target Capacity:</span>
                       <span className="font-medium text-gray-900">{selectedHostel.totalRooms} rooms</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Actual Rooms:</span>
+                      <span className="font-medium text-gray-900">{selectedHostel.actualRoomCount || 0}</span>
                     </div>
                     <div className="border-t border-blue-200 pt-2 mt-2">
                       {selectedHostel.warden ? (

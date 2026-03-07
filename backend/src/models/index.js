@@ -13,14 +13,14 @@ const Visitor = require('./Visitor');
 const WardenMessage = require('./WardenMessage');
 
 // Set up associations
-User.hasMany(Hostel, { foreignKey: 'wardenId', as: 'assignedHostels', constraints: false });
-Hostel.belongsTo(User, { foreignKey: 'wardenId', as: 'warden', constraints: false });
+User.hasMany(Hostel, { foreignKey: 'wardenId', as: 'assignedHostels' });
+Hostel.belongsTo(User, { foreignKey: 'wardenId', as: 'warden' });
 
-Hostel.hasMany(Room, { foreignKey: 'hostelId', as: 'rooms', constraints: false });
-Room.belongsTo(Hostel, { foreignKey: 'hostelId', as: 'hostel', constraints: false });
+Hostel.hasMany(Room, { foreignKey: 'hostelId', as: 'rooms' });
+Room.belongsTo(Hostel, { foreignKey: 'hostelId', as: 'hostel' });
 
-WardenMessage.belongsTo(User, { foreignKey: 'senderId', as: 'sender', constraints: false });
-WardenMessage.belongsTo(User, { foreignKey: 'receiverId', as: 'receiver', constraints: false });
+WardenMessage.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+WardenMessage.belongsTo(User, { foreignKey: 'receiverId', as: 'receiver' });
 
 module.exports = {
   User,

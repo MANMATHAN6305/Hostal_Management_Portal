@@ -6,6 +6,14 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { roomsApi, adminApi } from '@/lib/api';
 import type { Room } from '@/types';
+import {
+  defaultCapacityLabel,
+  defaultRoomTypeLabel,
+  defaultRoomTypeOrder,
+  getBlocksByGender,
+  getRoomCountForType,
+  getTotalRoomsInBlock
+} from '@/data/defaultHostelDetails';
 
 interface Hostel {
   id: number;
@@ -101,6 +109,8 @@ export default function Rooms() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [genderFilter, setGenderFilter] = useState('ALL');
   const [hostelFilter, setHostelFilter] = useState('ALL');
+  const defaultMaleBlocks = useMemo(() => getBlocksByGender('MALE'), []);
+  const defaultFemaleBlocks = useMemo(() => getBlocksByGender('FEMALE'), []);
 
   const hostelOptions = useMemo(() => {
     return hostels
@@ -240,6 +250,110 @@ export default function Rooms() {
           <Button>+ Add Room</Button>
         </Link>
       </div>
+
+      <Card>
+        <CardContent className="py-5 space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800">Default Room Structure</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Reference block-wise room distribution from the provided hostel master details.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+                <h3 className="text-sm md:text-base font-semibold text-blue-900">Men&apos;s Hostel Blocks</h3>
+                <p className="text-xs md:text-sm text-blue-800">
+                  {defaultCapacityLabel.MALE.blocks} blocks | {defaultCapacityLabel.MALE.rooms} rooms | {defaultCapacityLabel.MALE.members} members
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-sm">
+                  <thead>
+                    <tr className="text-left text-blue-900 border-b border-blue-200">
+                      <th className="py-2 pr-4 font-semibold">Block</th>
+                      {defaultRoomTypeOrder.map((roomType) => (
+                        <th key={`male-header-${roomType}`} className="py-2 px-2 font-semibold text-right">
+                          {defaultRoomTypeLabel[roomType]}
+                        </th>
+                      ))}
+                      <th className="py-2 pl-3 font-semibold text-right">Total Rooms</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {defaultMaleBlocks.map((block) => (
+                      <tr key={`male-${block.name}`} className="border-b border-blue-100 last:border-b-0">
+                        <td className="py-2 pr-4 font-medium text-gray-800">{block.name}</td>
+                        {defaultRoomTypeOrder.map((roomType) => {
+                          const count = getRoomCountForType(block, roomType);
+                          return (
+                            <td key={`male-${block.name}-${roomType}`} className="py-2 px-2 text-right text-gray-700">
+                              {count > 0 ? count : '-'}
+                            </td>
+                          );
+                        })}
+                        <td className="py-2 pl-3 text-right font-semibold text-gray-900">{getTotalRoomsInBlock(block)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-pink-200 bg-pink-50/30 p-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+                <h3 className="text-sm md:text-base font-semibold text-pink-900">Women&apos;s Hostel Blocks</h3>
+                <p className="text-xs md:text-sm text-pink-800">
+                  {defaultCapacityLabel.FEMALE.blocks} blocks | {defaultCapacityLabel.FEMALE.rooms} rooms | {defaultCapacityLabel.FEMALE.members} members
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-sm">
+                  <thead>
+                    <tr className="text-left text-pink-900 border-b border-pink-200">
+                      <th className="py-2 pr-4 font-semibold">Block</th>
+                      {defaultRoomTypeOrder.map((roomType) => (
+                        <th key={`female-header-${roomType}`} className="py-2 px-2 font-semibold text-right">
+                          {defaultRoomTypeLabel[roomType]}
+                        </th>
+                      ))}
+                      <th className="py-2 pl-3 font-semibold text-right">Total Rooms</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {defaultFemaleBlocks.map((block) => (
+                      <tr key={`female-${block.name}`} className="border-b border-pink-100 last:border-b-0">
+                        <td className="py-2 pr-4 font-medium text-gray-800">{block.name}</td>
+                        {defaultRoomTypeOrder.map((roomType) => {
+                          const count = getRoomCountForType(block, roomType);
+                          return (
+                            <td key={`female-${block.name}-${roomType}`} className="py-2 px-2 text-right text-gray-700">
+                              {count > 0 ? count : '-'}
+                            </td>
+                          );
+                        })}
+                        <td className="py-2 pl-3 text-right font-semibold text-gray-900">{getTotalRoomsInBlock(block)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {defaultFemaleBlocks.some((block) => block.note) && (
+                <div className="mt-3 space-y-1">
+                  {defaultFemaleBlocks
+                    .filter((block) => block.note)
+                    .map((block) => (
+                      <p key={`female-note-${block.name}`} className="text-xs text-pink-800">
+                        <span className="font-semibold">{block.name}:</span> {block.note}
+                      </p>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">

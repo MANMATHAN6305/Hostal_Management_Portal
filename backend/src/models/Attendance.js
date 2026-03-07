@@ -26,7 +26,7 @@ const Attendance = sequelize.define('Attendance', {
   }
 });
 
-Student.hasMany(Attendance, { constraints: false });
-Attendance.belongsTo(Student, { constraints: false });
+Student.hasMany(Attendance);
+Attendance.belongsTo(Student);
 
 module.exports = Attendance;

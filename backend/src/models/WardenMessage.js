@@ -9,11 +9,19 @@ const WardenMessage = sequelize.define('WardenMessage', {
   },
   senderId: {
     type: DataTypes.BIGINT,
-    allowNull: false
+    allowNull: false,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
   },
   receiverId: {
     type: DataTypes.BIGINT,
-    allowNull: true
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
   },
   title: {
     type: DataTypes.STRING(200),

@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import {
+  type DefaultRoomMix,
+  defaultCapacityLabel,
+  defaultRoomTypeLabel,
+  getBlocksByGender,
+  getTotalRoomsInBlock
+} from '@/data/defaultHostelDetails';
 
 interface HostelForm {
   name: string;
@@ -18,6 +25,8 @@ export default function AdminHostels() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const maleDefaultBlocks = getBlocksByGender('MALE');
+  const femaleDefaultBlocks = getBlocksByGender('FEMALE');
 
   // Separate hostels by gender
   const maleHostels = hostels.filter(h => h.gender === 'MALE');
@@ -118,6 +127,11 @@ export default function AdminHostels() {
     return gender === 'MALE' ? 'Boys Hostel' : 'Girls Hostel';
   };
 
+  const formatRoomMix = (roomMix: DefaultRoomMix[]) =>
+    roomMix
+      .map((mix) => `${mix.count} ${defaultRoomTypeLabel[mix.roomType]}`)
+      .join(', ');
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Hostels Management</h1>
@@ -157,6 +171,60 @@ export default function AdminHostels() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardContent className="space-y-6 py-5">
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">Default Hostel Details (Admin Reference)</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Block-wise structure from the provided hostel details.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <h3 className="text-base font-semibold text-blue-900">Men&apos;s Hostel Blocks</h3>
+                <p className="text-xs text-blue-800 text-right">
+                  {defaultCapacityLabel.MALE.blocks} blocks
+                  <br />
+                  {defaultCapacityLabel.MALE.rooms} rooms | {defaultCapacityLabel.MALE.members} members
+                </p>
+              </div>
+              <div className="space-y-3">
+                {maleDefaultBlocks.map((block) => (
+                  <div key={`male-default-${block.name}`} className="rounded border border-blue-100 bg-white/80 p-3">
+                    <p className="font-semibold text-gray-900">{block.name}</p>
+                    <p className="text-sm text-gray-700 mt-1">{formatRoomMix(block.roomMix)}</p>
+                    <p className="text-xs text-blue-700 mt-1">Total Rooms: {getTotalRoomsInBlock(block)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-pink-200 bg-pink-50/30 p-4">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <h3 className="text-base font-semibold text-pink-900">Women&apos;s Hostel Blocks</h3>
+                <p className="text-xs text-pink-800 text-right">
+                  {defaultCapacityLabel.FEMALE.blocks} blocks
+                  <br />
+                  {defaultCapacityLabel.FEMALE.rooms} rooms | {defaultCapacityLabel.FEMALE.members} members
+                </p>
+              </div>
+              <div className="space-y-3">
+                {femaleDefaultBlocks.map((block) => (
+                  <div key={`female-default-${block.name}`} className="rounded border border-pink-100 bg-white/80 p-3">
+                    <p className="font-semibold text-gray-900">{block.name}</p>
+                    <p className="text-sm text-gray-700 mt-1">{formatRoomMix(block.roomMix)}</p>
+                    <p className="text-xs text-pink-700 mt-1">Total Rooms: {getTotalRoomsInBlock(block)}</p>
+                    {block.note && <p className="text-xs text-pink-800 mt-1">{block.note}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Add Hostel Form */}
       <Card>

@@ -52,6 +52,7 @@ export default function AddRoom() {
   };
 
   const selectedHostel = hostels.find((hostel) => String(hostel.id) === selectedHostelId) || null;
+  const hasSelectedHostel = Boolean(selectedHostel);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -105,6 +106,7 @@ export default function AddRoom() {
     try {
       await roomsApi.create({
         ...formData,
+        hostelId: parseInt(selectedHostelId, 10),
         pricePerNight: parseFloat(formData.pricePerNight),
         capacity: getCapacityFromRoomType(formData.roomType),
         floorNumber: parseInt(formData.floorNumber)
@@ -157,7 +159,7 @@ export default function AddRoom() {
                     <p><span className="font-medium">Name:</span> {selectedHostel.name}</p>
                     <p><span className="font-medium">Block Code:</span> {selectedHostel.blockCode || 'N/A'}</p>
                     <p><span className="font-medium">Type:</span> {selectedHostel.gender}</p>
-                    <p><span className="font-medium">Target Rooms:</span> {selectedHostel.totalRooms}</p>
+                    <p><span className="font-medium">Target Capacity:</span> {selectedHostel.totalRooms} rooms</p>
                     <p><span className="font-medium">Actual Rooms:</span> {selectedHostel.actualRoomCount || 0}</p>
                     <p><span className="font-medium">Warden:</span> {selectedHostel.warden?.fullName || 'Not Assigned'}</p>
                   </div>
@@ -165,13 +167,16 @@ export default function AddRoom() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Room Number *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Room Number {selectedHostel ? `(${selectedHostel.name})` : ''} *
+                </label>
                 <Input
                   type="text"
                   name="roomNumber"
                   value={formData.roomNumber}
                   onChange={handleChange}
-                  placeholder="e.g., 101"
+                  placeholder={hasSelectedHostel ? 'e.g., 101' : 'Select hostel first'}
+                  disabled={!hasSelectedHostel}
                   required
                 />
               </div>
@@ -183,6 +188,7 @@ export default function AddRoom() {
                   value={formData.gender}
                   readOnly
                   className="bg-gray-100"
+                  disabled={!hasSelectedHostel}
                 />
               </div>
 
@@ -194,6 +200,7 @@ export default function AddRoom() {
                   value={formData.blockName}
                   readOnly
                   className="bg-gray-100"
+                  disabled={!hasSelectedHostel}
                 />
               </div>
 
@@ -204,8 +211,9 @@ export default function AddRoom() {
                   name="floorNumber"
                   value={formData.floorNumber}
                   onChange={handleChange}
-                  placeholder="1"
+                  placeholder={hasSelectedHostel ? '1' : 'Select hostel first'}
                   min="0"
+                  disabled={!hasSelectedHostel}
                   required
                 />
               </div>
@@ -217,6 +225,7 @@ export default function AddRoom() {
                   value={formData.roomType}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
+                  disabled={!hasSelectedHostel}
                   required
                 >
                   <option value="SINGLE">Single (1 bed)</option>
@@ -236,9 +245,10 @@ export default function AddRoom() {
                   name="pricePerNight"
                   value={formData.pricePerNight}
                   onChange={handleChange}
-                  placeholder="15000"
+                  placeholder={hasSelectedHostel ? '15000' : 'Select hostel first'}
                   step="0.01"
                   min="0"
+                  disabled={!hasSelectedHostel}
                   required
                 />
               </div>
@@ -250,6 +260,7 @@ export default function AddRoom() {
                   value={formData.status}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
+                  disabled={!hasSelectedHostel}
                   required
                 >
                   <option value="AVAILABLE">Available</option>
@@ -265,7 +276,8 @@ export default function AddRoom() {
                   name="amenities"
                   value={formData.amenities}
                   onChange={handleChange}
-                  placeholder="WiFi, AC, Attached Bathroom"
+                  placeholder={hasSelectedHostel ? 'WiFi, AC, Attached Bathroom' : 'Select hostel first'}
+                  disabled={!hasSelectedHostel}
                 />
               </div>
             </div>
@@ -278,7 +290,8 @@ export default function AddRoom() {
                 onChange={handleChange}
                 rows={3}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
-                placeholder="Room description..."
+                placeholder={hasSelectedHostel ? 'Room description...' : 'Select hostel first'}
+                disabled={!hasSelectedHostel}
               />
             </div>
 

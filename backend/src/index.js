@@ -25,9 +25,6 @@ const messageRoutes = require('./routes/message.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const SHOULD_SYNC_SCHEMA = process.env.DB_SYNC
-  ? process.env.DB_SYNC === 'true'
-  : process.env.NODE_ENV !== 'production';
 
 app.use(cors({
   origin: [
@@ -67,13 +64,10 @@ async function startServer() {
   try {
     await sequelize.authenticate();
     console.log('Database connected.');
-
-    if (SHOULD_SYNC_SCHEMA) {
-      await sequelize.sync({ alter: false });
-      console.log('Database schema synchronized.');
-    } else {
-      console.log('Database schema sync skipped (DB_SYNC=false).');
-    }
+    
+    // Sync database schema
+    await sequelize.sync({ alter: false });
+    console.log('Database schema synchronized.');
     
     app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
   } catch (error) {

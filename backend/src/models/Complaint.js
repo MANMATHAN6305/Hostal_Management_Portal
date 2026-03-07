@@ -42,9 +42,9 @@ const Complaint = sequelize.define('Complaint', {
 });
 
 // Association
-Student.hasMany(Complaint, { constraints: false });
-Complaint.belongsTo(Student, { constraints: false });
-User.hasMany(Complaint, { foreignKey: 'assignedById', as: 'AssignedComplaints', constraints: false });
-Complaint.belongsTo(User, { foreignKey: 'assignedById', as: 'AssignedBy', constraints: false });
+Student.hasMany(Complaint);
+Complaint.belongsTo(Student);
+User.hasMany(Complaint, { foreignKey: 'assignedById', as: 'AssignedComplaints' });
+Complaint.belongsTo(User, { foreignKey: 'assignedById', as: 'AssignedBy' });
 
 module.exports = Complaint;

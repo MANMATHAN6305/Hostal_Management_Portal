@@ -367,6 +367,12 @@ router.get('/dashboard', verifyToken, async (req, res) => {
     }
 
     // Get room allocation
+    const hostelWardenInclude = [{
+      model: User,
+      as: 'warden',
+      attributes: ['id', 'fullName', 'email', 'phone']
+    }];
+
     const allocation = await Allocation.findOne({
       where: { 
         StudentId: student.id,
@@ -374,7 +380,13 @@ router.get('/dashboard', verifyToken, async (req, res) => {
       },
       include: [{
         model: Room,
-        attributes: ['id', 'roomNumber', 'roomType', 'capacity', 'occupied', 'floorNumber', 'blockName', 'status', 'pricePerNight', 'amenities', 'hostelId']
+        attributes: ['id', 'roomNumber', 'roomType', 'capacity', 'occupied', 'floorNumber', 'blockName', 'status', 'pricePerNight', 'amenities', 'hostelId'],
+        include: [{
+          model: Hostel,
+          as: 'hostel',
+          attributes: ['id', 'name', 'blockCode', 'wardenId'],
+          include: hostelWardenInclude
+        }]
       }],
       order: [['createdAt', 'DESC']]
     });
@@ -388,61 +400,63 @@ router.get('/dashboard', verifyToken, async (req, res) => {
     const pendingComplaints = complaintStats.filter(c => c.status === 'PENDING').length;
     const totalComplaints = complaintStats.length;
 
+    const toWardenInfo = (hostel) => {
+      if (!hostel?.warden) return null;
+      return {
+        name: hostel.warden.fullName,
+        email: hostel.warden.email,
+        phone: hostel.warden.phone || null
+      };
+    };
+
     // Get assigned warden info from allocated room's hostel
     let wardenInfo = null;
     if (allocation?.Room) {
+      // Prefer direct Room -> Hostel -> Warden relation if present
+      wardenInfo = toWardenInfo(allocation.Room.hostel);
+
       let hostel = null;
       
       // Try to find hostel by hostelId first
-      if (allocation.Room.hostelId) {
+      if (!wardenInfo && allocation.Room.hostelId) {
         hostel = await Hostel.findByPk(allocation.Room.hostelId, {
-          include: [{
-            model: User,
-            as: 'warden',
-            attributes: ['id', 'fullName', 'email', 'phone']
-          }]
+          include: hostelWardenInclude
         });
       }
       
       // If not found by hostelId, try to match by blockName
-      if (!hostel && allocation.Room.blockName) {
+      const roomBlockName = String(allocation.Room.blockName || '').trim();
+      if (!wardenInfo && !hostel && roomBlockName) {
         hostel = await Hostel.findOne({
           where: {
             [Op.or]: [
-              { name: allocation.Room.blockName },
-              { name: { [Op.like]: `%${allocation.Room.blockName}%` } },
-              { blockCode: allocation.Room.blockName.split('-')[0] }
+              { name: roomBlockName },
+              { name: { [Op.like]: `%${roomBlockName}%` } },
+              { blockCode: roomBlockName },
+              { blockCode: { [Op.like]: `${roomBlockName}%` } }
             ]
           },
-          include: [{
-            model: User,
-            as: 'warden',
-            attributes: ['id', 'fullName', 'email', 'phone']
-          }]
+          include: hostelWardenInclude
         });
       }
       
       // If still not found, try to match by room number prefix
-      if (!hostel && allocation.Room.roomNumber) {
-        const roomPrefix = allocation.Room.roomNumber.split('-')[0];
+      const roomPrefix = String(allocation.Room.roomNumber || '').split('-')[0].trim();
+      if (!wardenInfo && !hostel && roomPrefix) {
         hostel = await Hostel.findOne({
           where: {
-            blockCode: roomPrefix
+            [Op.or]: [
+              { blockCode: roomPrefix },
+              { blockCode: { [Op.like]: `${roomPrefix}%` } },
+              { name: { [Op.like]: `${roomPrefix}%` } }
+            ]
           },
-          include: [{
-            model: User,
-            as: 'warden',
-            attributes: ['id', 'fullName', 'email', 'phone']
-          }]
+          include: hostelWardenInclude
         });
       }
       
-      if (hostel?.warden) {
-        wardenInfo = {
-          name: hostel.warden.fullName,
-          email: hostel.warden.email,
-          phone: hostel.warden.phone || null
-        };
+      if (!wardenInfo) {
+        wardenInfo = toWardenInfo(hostel);
       }
     }
 
