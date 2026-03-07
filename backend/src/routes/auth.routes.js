@@ -69,7 +69,7 @@ router.get('/google', passport.authenticate('google', {
 }));
 
 router.get('/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login?error=google_auth_failed` }),
+  passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/#/login?error=google_auth_failed` }),
   async (req, res) => {
     try {
       const user = req.user;
@@ -97,10 +97,10 @@ router.get('/google/callback',
         params.append('studentId', studentId.toString());
       }
       
-      res.redirect(`${FRONTEND_URL}/login?${params.toString()}`);
+      res.redirect(`${FRONTEND_URL}/#/login?${params.toString()}`);
     } catch (error) {
       console.error('Google callback error:', error);
-      res.redirect(`${FRONTEND_URL}/login?error=google_auth_failed`);
+      res.redirect(`${FRONTEND_URL}/#/login?error=google_auth_failed`);
     }
   }
 );
