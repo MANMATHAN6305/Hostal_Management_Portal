@@ -1,8 +1,22 @@
 import axios from 'axios';
 
+const getFallbackApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    if (!isLocalhost) {
+      // Production-safe fallback when VITE_API_BASE_URL is not configured.
+      return 'https://hostel-portal-backend.onrender.com/api';
+    }
+  }
+
+  return 'http://localhost:5000/api';
+};
+
 const rawApiBaseUrl =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ||
-  'http://localhost:5000/api';
+  getFallbackApiBaseUrl();
 
 const API_BASE_URL = rawApiBaseUrl.replace(/\/+$/, '');
 
