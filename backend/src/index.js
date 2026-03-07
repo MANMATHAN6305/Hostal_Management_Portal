@@ -26,15 +26,39 @@ const messageRoutes = require('./routes/message.routes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: [
+const normalizeOrigin = (origin) => origin.replace(/\/+$/, '').toLowerCase();
+
+const allowedOrigins = new Set(
+  [
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:5173',
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
-  credentials: true
-}));
+    process.env.FRONTEND_URL,
+    ...(process.env.CORS_ALLOWED_ORIGINS || '').split(',')
+  ]
+    .map((origin) => (origin || '').trim())
+    .filter(Boolean)
+    .map(normalizeOrigin)
+);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server tools and same-origin requests without Origin header.
+    if (!origin) return callback(null, true);
+
+    const normalizedOrigin = normalizeOrigin(origin);
+    if (allowedOrigins.has(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());

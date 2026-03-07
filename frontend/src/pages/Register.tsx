@@ -3,9 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '@/lib/api';
 
 const getGoogleAuthUrl = () => {
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+  const fallbackApiBase = hostname.endsWith('.onrender.com')
+    ? `${protocol}//${hostname.replace('-portal.', '-backend.').replace('-frontend.', '-backend.')}/api`
+    : 'https://hostal-management-backend.onrender.com/api';
+
   const apiBase =
     (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ||
-    'https://hostel-portal-backend.onrender.com/api';
+    fallbackApiBase;
   return `${apiBase.replace(/\/+$/, '')}/auth/google`;
 };
 

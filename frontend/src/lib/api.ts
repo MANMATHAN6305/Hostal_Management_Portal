@@ -1,13 +1,25 @@
 import axios from 'axios';
 
+const getRenderBackendFromFrontendHost = (hostname: string): string => {
+  return hostname
+    .replace('-portal.', '-backend.')
+    .replace('-frontend.', '-backend.');
+};
+
 const getFallbackApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol;
     const hostname = window.location.hostname;
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
 
     if (!isLocalhost) {
       // Production-safe fallback when VITE_API_BASE_URL is not configured.
-      return 'https://hostel-portal-backend.onrender.com/api';
+      if (hostname.endsWith('.onrender.com')) {
+        const backendHost = getRenderBackendFromFrontendHost(hostname);
+        return `${protocol}//${backendHost}/api`;
+      }
+
+      return `${protocol}//${hostname}/api`;
     }
   }
 
