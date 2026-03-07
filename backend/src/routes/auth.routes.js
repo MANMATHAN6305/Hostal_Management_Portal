@@ -8,12 +8,31 @@ const Student = require('../models/Student');
 const { generateToken, verifyToken } = require('../middleware/auth');
 
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+const BACKEND_URL = (
+  process.env.BACKEND_URL ||
+  process.env.RENDER_EXTERNAL_URL ||
+  'https://hostal-management-backend.onrender.com'
+).replace(/\/+$/, '');
+
+const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
+const GOOGLE_CLIENT_SECRET = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
+const GOOGLE_CALLBACK_URL = (
+  process.env.GOOGLE_CALLBACK_URL ||
+  `${BACKEND_URL}/api/auth/google/callback`
+).trim();
+
+const isPlaceholder = (value) => !value || /^your-google-/i.test(value);
+const isGoogleOAuthConfigured =
+  !isPlaceholder(GOOGLE_CLIENT_ID) && !isPlaceholder(GOOGLE_CLIENT_SECRET);
+
+const redirectToLoginError = (res, errorCode) =>
+  res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent(errorCode)}`);
 
 // Configure Google OAuth Strategy
 passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID || 'your-google-client-id',
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'your-google-client-secret',
-    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
+    clientID: GOOGLE_CLIENT_ID || 'your-google-client-id',
+    clientSecret: GOOGLE_CLIENT_SECRET || 'your-google-client-secret',
+    callbackURL: GOOGLE_CALLBACK_URL
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
@@ -64,11 +83,23 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // Google OAuth routes
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email']
-}));
+router.get('/google', (req, res, next) => {
+  if (!isGoogleOAuthConfigured) {
+    return redirectToLoginError(res, 'google_oauth_not_configured');
+  }
+
+  return passport.authenticate('google', {
+    scope: ['profile', 'email']
+  })(req, res, next);
+});
 
 router.get('/google/callback',
+  (req, res, next) => {
+    if (!isGoogleOAuthConfigured) {
+      return redirectToLoginError(res, 'google_oauth_not_configured');
+    }
+    return next();
+  },
   passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login?error=google_auth_failed` }),
   async (req, res) => {
     try {
