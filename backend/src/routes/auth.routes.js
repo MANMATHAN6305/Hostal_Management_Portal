@@ -13,6 +13,10 @@ const BACKEND_URL = (
   process.env.RENDER_EXTERNAL_URL ||
   'https://hostal-management-backend.onrender.com'
 ).replace(/\/+$/, '');
+const EXTRA_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
 const GOOGLE_CLIENT_SECRET = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
@@ -25,8 +29,66 @@ const isPlaceholder = (value) => !value || /^your-google-/i.test(value);
 const isGoogleOAuthConfigured =
   !isPlaceholder(GOOGLE_CLIENT_ID) && !isPlaceholder(GOOGLE_CLIENT_SECRET);
 
-const redirectToLoginError = (res, errorCode) =>
-  res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent(errorCode)}`);
+const normalizeOrigin = (origin) => origin.replace(/\/+$/, '').toLowerCase();
+
+const allowedFrontendOrigins = new Set(
+  [FRONTEND_URL, ...EXTRA_ALLOWED_ORIGINS]
+    .filter(Boolean)
+    .map(normalizeOrigin)
+);
+
+const encodeBase64Url = (value) =>
+  Buffer.from(value, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+const decodeBase64Url = (value) => {
+  const normalized = String(value).replace(/-/g, '+').replace(/_/g, '/');
+  const padding = normalized.length % 4 === 0 ? '' : '='.repeat(4 - (normalized.length % 4));
+  return Buffer.from(normalized + padding, 'base64').toString('utf8');
+};
+
+const parseOAuthState = (stateValue) => {
+  if (!stateValue || typeof stateValue !== 'string') return null;
+  try {
+    return JSON.parse(decodeBase64Url(stateValue));
+  } catch (_error) {
+    return null;
+  }
+};
+
+const isTrustedFrontendOrigin = (origin) => {
+  try {
+    const url = new URL(origin);
+    if (!/^https?:$/.test(url.protocol)) return false;
+
+    const normalized = normalizeOrigin(url.origin);
+    if (allowedFrontendOrigins.has(normalized)) return true;
+
+    // Allow Render frontend domains when explicit envs are not fully aligned.
+    if (url.hostname.endsWith('.onrender.com')) return true;
+
+    return false;
+  } catch (_error) {
+    return false;
+  }
+};
+
+const resolveFrontendBase = ({ stateValue, queryOrigin } = {}) => {
+  const state = parseOAuthState(stateValue);
+  const originFromState = state?.redirectOrigin;
+  if (originFromState && isTrustedFrontendOrigin(originFromState)) {
+    return originFromState.replace(/\/+$/, '');
+  }
+
+  if (queryOrigin && isTrustedFrontendOrigin(queryOrigin)) {
+    return queryOrigin.replace(/\/+$/, '');
+  }
+
+  return FRONTEND_URL;
+};
 
 // Configure Google OAuth Strategy
 passport.use(new GoogleStrategy({
@@ -84,55 +146,74 @@ passport.deserializeUser(async (id, done) => {
 
 // Google OAuth routes
 router.get('/google', (req, res, next) => {
+  const queryOrigin = String(req.query.redirect_origin || '').trim();
+  const frontendBase = resolveFrontendBase({ queryOrigin });
+
   if (!isGoogleOAuthConfigured) {
-    return redirectToLoginError(res, 'google_oauth_not_configured');
+    return res.redirect(`${frontendBase}/login?error=${encodeURIComponent('google_oauth_not_configured')}`);
   }
 
-  return passport.authenticate('google', {
+  const authOptions = {
     scope: ['profile', 'email']
-  })(req, res, next);
+  };
+
+  if (frontendBase) {
+    authOptions.state = encodeBase64Url(JSON.stringify({ redirectOrigin: frontendBase }));
+  }
+
+  return passport.authenticate('google', authOptions)(req, res, next);
 });
 
 router.get('/google/callback',
   (req, res, next) => {
     if (!isGoogleOAuthConfigured) {
-      return redirectToLoginError(res, 'google_oauth_not_configured');
+      const frontendBase = resolveFrontendBase({ stateValue: req.query.state });
+      return res.redirect(`${frontendBase}/login?error=${encodeURIComponent('google_oauth_not_configured')}`);
     }
     return next();
   },
-  passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login?error=google_auth_failed` }),
-  async (req, res) => {
-    try {
-      const user = req.user;
-      const token = generateToken(user);
-      
-      // Get student ID if applicable
-      let studentId = null;
-      if (user.role === 'STUDENT') {
-        const student = await Student.findOne({ where: { email: user.email } });
-        if (student) {
-          studentId = student.id;
+  (req, res, next) => {
+    passport.authenticate('google', { session: false }, async (error, user) => {
+      const frontendBase = resolveFrontendBase({ stateValue: req.query.state });
+      const redirectError = (errorCode) =>
+        res.redirect(`${frontendBase}/login?error=${encodeURIComponent(errorCode)}`);
+
+      if (error || !user) {
+        if (error) console.error('Google auth failure:', error);
+        return redirectError('google_auth_failed');
+      }
+
+      try {
+        const token = generateToken(user);
+
+        // Get student ID if applicable
+        let studentId = null;
+        if (user.role === 'STUDENT') {
+          const student = await Student.findOne({ where: { email: user.email } });
+          if (student) {
+            studentId = student.id;
+          }
         }
+
+        // Redirect to login page with auth data - login page will handle storing and redirecting
+        const params = new URLSearchParams({
+          token,
+          userId: user.id.toString(),
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role
+        });
+
+        if (studentId) {
+          params.append('studentId', studentId.toString());
+        }
+
+        return res.redirect(`${frontendBase}/login?${params.toString()}`);
+      } catch (callbackError) {
+        console.error('Google callback error:', callbackError);
+        return redirectError('google_auth_failed');
       }
-      
-      // Redirect to login page with auth data - login page will handle storing and redirecting
-      const params = new URLSearchParams({
-        token,
-        userId: user.id.toString(),
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role
-      });
-      
-      if (studentId) {
-        params.append('studentId', studentId.toString());
-      }
-      
-      res.redirect(`${FRONTEND_URL}/login?${params.toString()}`);
-    } catch (error) {
-      console.error('Google callback error:', error);
-      res.redirect(`${FRONTEND_URL}/login?error=google_auth_failed`);
-    }
+    })(req, res, next);
   }
 );
 

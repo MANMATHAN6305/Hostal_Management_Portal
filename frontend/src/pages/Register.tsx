@@ -12,7 +12,9 @@ const getGoogleAuthUrl = () => {
   const apiBase =
     (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ||
     fallbackApiBase;
-  return `${apiBase.replace(/\/+$/, '')}/auth/google`;
+  const authUrl = new URL(`${apiBase}/auth/google`);
+  authUrl.searchParams.set('redirect_origin', window.location.origin);
+  return authUrl.toString();
 };
 
 export default function Register() {
