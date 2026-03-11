@@ -24,8 +24,9 @@ async function importData() {
   const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 
   // Ensure tables exist first
-  require('../../src/models');
+  require('../models');
   await sequelize.authenticate();
+  console.log('DB authenticated.');
   await sequelize.sync({ alter: false });
   console.log('Tables synced.');
 
@@ -79,6 +80,7 @@ async function importData() {
 
 importData().catch((err) => {
   console.error('Import skipped:', err.message);
+  console.error(err.stack);
   // Don't crash — let the server start anyway
   process.exit(0);
 });
