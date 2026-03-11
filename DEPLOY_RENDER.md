@@ -38,6 +38,10 @@ Set these in Render service environment settings:
 - `DB_SSL`
 - `JWT_SECRET`
 - `FRONTEND_URL` (your frontend Render URL)
+- `BACKEND_URL` (your backend Render URL)
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_CALLBACK_URL` (must be `https://<your-backend-service>.onrender.com/api/auth/google/callback`)
 
 ### Frontend service (`hostel-portal-frontend`)
 

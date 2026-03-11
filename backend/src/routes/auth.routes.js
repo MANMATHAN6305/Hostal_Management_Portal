@@ -7,12 +7,50 @@ const User = require('../models/User');
 const Student = require('../models/Student');
 const { generateToken, verifyToken } = require('../middleware/auth');
 
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
-const BACKEND_URL = (
+const stripTrailingSlash = (value) => String(value || '').replace(/\/+$/, '');
+
+const isLocalhostUrl = (value) => {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  } catch (_error) {
+    return false;
+  }
+};
+
+const getRenderFrontendFromBackendUrl = (backendUrl) => {
+  try {
+    const parsed = new URL(backendUrl);
+    if (!parsed.hostname.endsWith('.onrender.com')) return null;
+
+    const candidateHost = parsed.hostname
+      .replace('-backend.', '-portal.')
+      .replace('-api.', '-portal.')
+      .replace('-frontend.', '-portal.');
+
+    return `${parsed.protocol}//${candidateHost}`;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const BACKEND_URL = stripTrailingSlash(
   process.env.BACKEND_URL ||
-  process.env.RENDER_EXTERNAL_URL ||
-  'https://hostal-management-backend.onrender.com'
-).replace(/\/+$/, '');
+    process.env.RENDER_EXTERNAL_URL ||
+    'https://hostal-management-backend.onrender.com'
+);
+
+const FRONTEND_URL = (() => {
+  const explicitFrontendUrl = stripTrailingSlash(process.env.FRONTEND_URL || 'http://localhost:5173');
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!isProduction || !isLocalhostUrl(explicitFrontendUrl)) {
+    return explicitFrontendUrl;
+  }
+
+  // Guard against production misconfiguration where FRONTEND_URL is left as localhost.
+  return getRenderFrontendFromBackendUrl(BACKEND_URL) || explicitFrontendUrl;
+})();
 const EXTRA_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
@@ -20,10 +58,22 @@ const EXTRA_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '')
 
 const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
 const GOOGLE_CLIENT_SECRET = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
-const GOOGLE_CALLBACK_URL = (
-  process.env.GOOGLE_CALLBACK_URL ||
-  `${BACKEND_URL}/api/auth/google/callback`
-).trim();
+const GOOGLE_CALLBACK_URL = (() => {
+  const configuredCallbackUrl = stripTrailingSlash(process.env.GOOGLE_CALLBACK_URL || '');
+  const fallbackCallbackUrl = `${BACKEND_URL}/api/auth/google/callback`;
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!configuredCallbackUrl) {
+    return fallbackCallbackUrl;
+  }
+
+  // Guard against production misconfiguration where callback stays on localhost.
+  if (isProduction && isLocalhostUrl(configuredCallbackUrl)) {
+    return fallbackCallbackUrl;
+  }
+
+  return configuredCallbackUrl;
+})();
 
 const isPlaceholder = (value) => !value || /^your-google-/i.test(value);
 const isGoogleOAuthConfigured =
