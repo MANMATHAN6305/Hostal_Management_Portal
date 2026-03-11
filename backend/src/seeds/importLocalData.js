@@ -15,11 +15,24 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 
-const TABLES_IN_ORDER = [
-  'users', 'hostels', 'rooms', 'students', 'allocations',
-  'menus', 'complaints', 'applications', 'payments',
-  'requests', 'attendances', 'visitors', 'wardenmessages',
-];
+// JSON keys (lowercase) → actual MySQL table names (Sequelize default: capitalized + pluralized)
+const TABLE_MAP = {
+  users: 'Users',
+  hostels: 'Hostels',
+  rooms: 'Rooms',
+  students: 'Students',
+  allocations: 'Allocations',
+  menus: 'Menus',
+  complaints: 'Complaints',
+  applications: 'Applications',
+  payments: 'Payments',
+  requests: 'Requests',
+  attendances: 'Attendances',
+  visitors: 'Visitors',
+  wardenmessages: 'WardenMessages',
+};
+
+const TABLES_IN_ORDER = Object.keys(TABLE_MAP);
 
 async function importData() {
   const dataPath = path.join(__dirname, 'localData.json');
@@ -53,14 +66,15 @@ async function importData() {
 
   await conn.query('SET FOREIGN_KEY_CHECKS = 0');
 
-  for (const table of TABLES_IN_ORDER) {
-    const rows = data[table];
+  for (const jsonKey of TABLES_IN_ORDER) {
+    const rows = data[jsonKey];
+    const mysqlTable = TABLE_MAP[jsonKey];
     if (!rows || rows.length === 0) {
-      console.log(`${table}: 0 rows — skipped`);
+      console.log(`${mysqlTable}: 0 rows — skipped`);
       continue;
     }
 
-    await conn.query(`TRUNCATE TABLE \`${table}\``);
+    await conn.query(`TRUNCATE TABLE \`${mysqlTable}\``);
 
     const columns = Object.keys(rows[0]);
     const batchSize = 100;
@@ -73,11 +87,11 @@ async function importData() {
       const values = batch.flatMap((row) => columns.map((col) => row[col] ?? null));
 
       await conn.query(
-        `INSERT INTO \`${table}\` (${columns.map((c) => `\`${c}\``).join(',')}) VALUES ${placeholders}`,
+        `INSERT INTO \`${mysqlTable}\` (${columns.map((c) => `\`${c}\``).join(',')}) VALUES ${placeholders}`,
         values
       );
     }
-    console.log(`${table}: ${rows.length} rows ✓`);
+    console.log(`${mysqlTable}: ${rows.length} rows ✓`);
   }
 
   await conn.query('SET FOREIGN_KEY_CHECKS = 1');
