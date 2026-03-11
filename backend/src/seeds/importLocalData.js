@@ -23,6 +23,12 @@ async function importData() {
 
   const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 
+  // Ensure tables exist first
+  require('../../src/models');
+  await sequelize.authenticate();
+  await sequelize.sync({ alter: false });
+  console.log('Tables synced.');
+
   // Use raw mysql2 connection from sequelize config
   const config = sequelize.config;
   const conn = await mysql.createConnection({
@@ -38,11 +44,15 @@ async function importData() {
   console.log('Connected to database.');
 
   // Check if data already exists — skip if users table has rows
-  const [existing] = await conn.query('SELECT COUNT(*) as cnt FROM `users`').catch(() => [[{ cnt: 0 }]]);
-  if (existing[0].cnt > 0) {
-    console.log(`Database already has ${existing[0].cnt} users — skipping import.`);
-    await conn.end();
-    return;
+  try {
+    const [existing] = await conn.query('SELECT COUNT(*) as cnt FROM `users`');
+    if (existing[0].cnt > 0) {
+      console.log(`Database already has ${existing[0].cnt} users — skipping import.`);
+      await conn.end();
+      return;
+    }
+  } catch (_e) {
+    // Table may not exist yet, continue with import
   }
 
   await conn.query('SET FOREIGN_KEY_CHECKS = 0');
