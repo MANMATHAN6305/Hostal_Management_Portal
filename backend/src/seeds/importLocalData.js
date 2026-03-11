@@ -2,6 +2,13 @@
  * Import local data into the connected database.
  * Run once on the server: node src/seeds/importLocalData.js
  */
+console.log('=== IMPORT SCRIPT STARTED ===');
+console.log('CWD:', process.cwd());
+console.log('__dirname:', __dirname);
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_PORT:', process.env.DB_PORT);
+console.log('DB_NAME:', process.env.DB_NAME);
+
 require('dotenv').config();
 const { sequelize } = require('../config/database');
 const fs = require('fs');
@@ -79,8 +86,9 @@ async function importData() {
 }
 
 importData().catch((err) => {
-  console.error('Import skipped:', err.message);
-  console.error(err.stack);
+  console.error('=== IMPORT FAILED ===');
+  console.error('Error:', err.message);
+  console.error('Stack:', err.stack);
   // Don't crash — let the server start anyway
   process.exit(0);
 });
