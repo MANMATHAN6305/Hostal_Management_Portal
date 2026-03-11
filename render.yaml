@@ -4,8 +4,8 @@ services:
     runtime: node
     rootDir: backend
     plan: free
-    buildCommand: npm install && npm run seed:import
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: node src/seeds/importLocalData.js; npm start
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
