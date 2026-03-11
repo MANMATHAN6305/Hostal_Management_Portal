@@ -43,18 +43,6 @@ async function importData() {
 
   console.log('Connected to database.');
 
-  // Check if data already exists — skip if users table has rows
-  try {
-    const [existing] = await conn.query('SELECT COUNT(*) as cnt FROM `users`');
-    if (existing[0].cnt > 0) {
-      console.log(`Database already has ${existing[0].cnt} users — skipping import.`);
-      await conn.end();
-      return;
-    }
-  } catch (_e) {
-    // Table may not exist yet, continue with import
-  }
-
   await conn.query('SET FOREIGN_KEY_CHECKS = 0');
 
   for (const table of TABLES_IN_ORDER) {
