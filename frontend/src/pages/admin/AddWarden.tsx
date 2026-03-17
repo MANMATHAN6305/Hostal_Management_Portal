@@ -110,7 +110,7 @@ export default function AddWarden() {
     try {
       await adminApi.createWarden({
         ...formData,
-        gender: formData.gender.toUpperCase(),
+        gender: formData.gender,
         hostelId: formData.hostelId ? parseInt(formData.hostelId, 10) : null
       });
       navigate('/wardens');

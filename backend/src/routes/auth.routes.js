@@ -412,7 +412,7 @@ router.post('/register', async (req, res) => {
 router.get('/users', async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: ['id', 'fullName', 'email', 'role', 'isActive']
+      attributes: ['id', 'fullName', 'email', 'role', 'staffRole', 'phone', 'gender', 'googleId', 'isActive', 'createdAt', 'updatedAt']
     });
     
     res.json(users.map(user => ({
@@ -421,6 +421,12 @@ router.get('/users', async (req, res) => {
       email: user.email,
       password: null, // Don't return password
       role: user.role,
+      staffRole: user.staffRole,
+      phone: user.phone,
+      gender: user.gender,
+      googleId: user.googleId,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
       isActive: user.isActive
     })));
   } catch (error) {

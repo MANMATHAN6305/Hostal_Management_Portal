@@ -9,6 +9,14 @@ const Allocation = require('../models/Allocation');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 
+const normalizeGender = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'male') return 'male';
+  if (normalized === 'female') return 'female';
+  if (normalized === 'other') return 'other';
+  return null;
+};
+
 // GET /api/admin/wardens - Get all wardens
 router.get('/wardens', verifyToken, isAdmin, async (req, res) => {
   try {
@@ -172,16 +180,26 @@ router.get('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
 router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
   try {
     const { fullName, email, password, phone, gender, hostelId } = req.body;
+    const normalizedFullName = String(fullName || '').trim();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedGender = normalizeGender(gender);
 
-    if (!fullName || !email || !password) {
+    if (!normalizedFullName || !normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: 'Full name, email, and password are required'
       });
     }
 
+    if (gender !== undefined && gender !== null && !normalizedGender) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid gender. Allowed values: male, female, other'
+      });
+    }
+
     // Check if email already exists
-    const existingUser = await User.findOne({ where: { email } });
+    const existingUser = await User.findOne({ where: { email: normalizedEmail } });
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -212,11 +230,11 @@ router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
 
     // Create warden
     const warden = await User.create({
-      fullName,
-      email,
+      fullName: normalizedFullName,
+      email: normalizedEmail,
       password: hashedPassword,
-      phone,
-      gender,
+      phone: phone ? String(phone).trim() : null,
+      gender: normalizedGender,
       role: 'WARDEN',
       isActive: true
     });
@@ -253,6 +271,8 @@ router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
 router.put('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
   try {
     const { fullName, email, phone, gender, hostelId, isActive, password } = req.body;
+    const normalizedEmail = email !== undefined ? String(email || '').trim().toLowerCase() : undefined;
+    const normalizedGender = gender !== undefined ? normalizeGender(gender) : undefined;
 
     const warden = await User.findOne({
       where: { id: req.params.id, role: 'WARDEN' }
@@ -266,14 +286,21 @@ router.put('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
     }
 
     // Check email uniqueness if changing
-    if (email && email !== warden.email) {
-      const existingUser = await User.findOne({ where: { email } });
+    if (normalizedEmail && normalizedEmail !== warden.email) {
+      const existingUser = await User.findOne({ where: { email: normalizedEmail } });
       if (existingUser) {
         return res.status(400).json({
           success: false,
           message: 'Email already in use'
         });
       }
+    }
+
+    if (gender !== undefined && gender !== null && !normalizedGender) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid gender. Allowed values: male, female, other'
+      });
     }
 
     // Handle hostel reassignment
@@ -308,10 +335,10 @@ router.put('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
     }
 
     // Update warden details
-    if (fullName) warden.fullName = fullName;
-    if (email) warden.email = email;
-    if (phone !== undefined) warden.phone = phone;
-    if (gender) warden.gender = gender;
+    if (fullName) warden.fullName = String(fullName).trim();
+    if (normalizedEmail) warden.email = normalizedEmail;
+    if (phone !== undefined) warden.phone = phone ? String(phone).trim() : null;
+    if (gender !== undefined) warden.gender = normalizedGender;
     if (isActive !== undefined) warden.isActive = isActive;
     if (password) {
       warden.password = await bcrypt.hash(password, 10);

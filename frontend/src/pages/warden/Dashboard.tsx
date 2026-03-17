@@ -16,6 +16,7 @@ export default function WardenDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [assignedHostelName, setAssignedHostelName] = useState('Not Assigned');
   const [stats, setStats] = useState({
     pendingRequests: 0,
     openComplaints: 0,
@@ -36,6 +37,18 @@ export default function WardenDashboard() {
       if (!res?.success) {
         setError(res?.message || 'Failed to load warden dashboard.');
         return;
+      }
+
+      const assignedNameFromApi = String(res.assignedHostelName || '').trim();
+      if (assignedNameFromApi) {
+        setAssignedHostelName(assignedNameFromApi);
+      } else if (Array.isArray(res.assignedHostels) && res.assignedHostels.length > 0) {
+        const names = res.assignedHostels
+          .map((hostel: any) => String(hostel?.name || '').trim())
+          .filter(Boolean);
+        setAssignedHostelName(names.length > 0 ? names.join(', ') : 'Not Assigned');
+      } else {
+        setAssignedHostelName('Not Assigned');
       }
 
       // Fetch unread messages
@@ -105,8 +118,16 @@ export default function WardenDashboard() {
     <div className="space-y-8">
       {/* Header with Gradient */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-lg p-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">Warden Dashboard</h1>
-        <p className="text-blue-100 text-lg">Manage students, requests, complaints, and attendance records</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Warden Dashboard</h1>
+            <p className="text-blue-100 text-lg">Manage students, requests, complaints, and attendance records</p>
+          </div>
+          <div className="rounded-xl bg-white/20 px-5 py-4 backdrop-blur-sm border border-white/20 md:min-w-[240px]">
+            <p className="text-xs uppercase tracking-wide text-blue-100">Assigned Hostel</p>
+            <p className="mt-1 text-lg font-semibold text-white break-words">{assignedHostelName}</p>
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}

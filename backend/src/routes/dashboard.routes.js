@@ -31,17 +31,26 @@ router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT',
 
       const wardenHostels = await Hostel.findAll({
         where: { wardenId: req.user.id },
-        attributes: ['name'],
+        attributes: ['id', 'name', 'blockCode', 'gender'],
         raw: true
       });
       const hostelNames = wardenHostels
         .map((hostel) => String(hostel.name || '').trim())
         .filter(Boolean);
+      const assignedHostels = wardenHostels.map((hostel) => ({
+        id: Number(hostel.id),
+        name: hostel.name,
+        blockCode: hostel.blockCode,
+        gender: hostel.gender
+      }));
+      const assignedHostelName = hostelNames.length > 0 ? hostelNames.join(', ') : 'Not Assigned';
 
       if (hostelNames.length === 0) {
         return res.json({
           success: true,
           role: 'WARDEN',
+          assignedHostelName,
+          assignedHostels,
           stats: {
             pendingRequests: 0,
             openComplaints: 0,
@@ -80,6 +89,8 @@ router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT',
         return res.json({
           success: true,
           role: 'WARDEN',
+          assignedHostelName,
+          assignedHostels,
           stats: {
             pendingRequests: 0,
             openComplaints: 0,
@@ -141,6 +152,8 @@ router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT',
       return res.json({
         success: true,
         role: 'WARDEN',
+        assignedHostelName,
+        assignedHostels,
         stats: {
           pendingRequests,
           openComplaints,
