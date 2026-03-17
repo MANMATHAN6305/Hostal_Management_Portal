@@ -3,6 +3,7 @@ const router = express.Router();
 const { Op } = require('sequelize');
 const Request = require('../models/Request');
 const Student = require('../models/Student');
+const Application = require('../models/Application');
 const Allocation = require('../models/Allocation');
 const Room = require('../models/Room');
 const Hostel = require('../models/Hostel');
@@ -36,8 +37,25 @@ const parseRoomChangeDescription = (description = '') => {
 
 const ensureRequestSchema = async () => {
   if (requestSchemaReady) return;
-  await Request.sync({ alter: true });
+  // Avoid runtime ALTER in production (some managed DB users don't have ALTER privileges).
+  await Request.sync();
   requestSchemaReady = true;
+};
+
+const getStudentForRequest = async (reqUser) => {
+  let student = await Student.findOne({ where: { email: reqUser.email } });
+  if (student) return student;
+
+  // Fallback for legacy data where student email differs from login email.
+  const application = await Application.findOne({
+    where: { studentEmail: reqUser.email },
+    include: [{ model: Student }],
+    order: [['createdAt', 'DESC']]
+  });
+
+  if (application?.Student) return application.Student;
+
+  return null;
 };
 
 const parseDateInput = (value) => {
@@ -126,7 +144,7 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
   try {
     await ensureRequestSchema();
 
-    const student = await Student.findOne({ where: { email: req.user.email } });
+    const student = await getStudentForRequest(req.user);
     if (!student) return res.status(404).json({ success: false, message: 'Student not found.' });
 
     const type = req.body.type;
@@ -201,7 +219,7 @@ router.get('/', verifyToken, authorizeRoles('STUDENT', 'WARDEN', 'ADMIN'), async
 
     let where = {};
     if (req.user.role === 'STUDENT') {
-      const student = await Student.findOne({ where: { email: req.user.email } });
+      const student = await getStudentForRequest(req.user);
       where = { StudentId: student?.id || -1 };
     } else if (req.user.role === 'WARDEN') {
       const wardenStudentIds = await getWardenStudentIds(req.user.id);

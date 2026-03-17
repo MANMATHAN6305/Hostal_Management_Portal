@@ -155,7 +155,8 @@ const getStudentForRequest = async (reqUser) => {
 
 const ensureComplaintSchema = async () => {
   if (complaintSchemaReady) return;
-  await Complaint.sync({ alter: true });
+  // Avoid runtime ALTER in production (some managed DB users don't have ALTER privileges).
+  await Complaint.sync();
   complaintSchemaReady = true;
 };
 
