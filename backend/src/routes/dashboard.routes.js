@@ -44,12 +44,14 @@ router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT',
         gender: hostel.gender
       }));
       const assignedHostelName = hostelNames.length > 0 ? hostelNames.join(', ') : 'Not Assigned';
+      const assignedHostel = assignedHostels[0] || null;
 
       if (hostelNames.length === 0) {
         return res.json({
           success: true,
           role: 'WARDEN',
           assignedHostelName,
+          assignedHostel,
           assignedHostels,
           stats: {
             pendingRequests: 0,
@@ -90,6 +92,7 @@ router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT',
           success: true,
           role: 'WARDEN',
           assignedHostelName,
+          assignedHostel,
           assignedHostels,
           stats: {
             pendingRequests: 0,
@@ -153,6 +156,7 @@ router.get('/summary', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT',
         success: true,
         role: 'WARDEN',
         assignedHostelName,
+        assignedHostel,
         assignedHostels,
         stats: {
           pendingRequests,

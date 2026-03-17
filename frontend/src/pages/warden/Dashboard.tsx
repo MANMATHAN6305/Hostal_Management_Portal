@@ -39,14 +39,36 @@ export default function WardenDashboard() {
         return;
       }
 
-      const assignedNameFromApi = String(res.assignedHostelName || '').trim();
+      const extractAssignedHostelName = (payload: any): string => {
+        const directName = String(
+          payload?.assignedHostelName ||
+            payload?.hostelName ||
+            payload?.stats?.assignedHostelName ||
+            payload?.assignedHostel?.name ||
+            payload?.hostel?.name ||
+            ''
+        ).trim();
+        if (directName) return directName;
+
+        if (Array.isArray(payload?.assignedHostels) && payload.assignedHostels.length > 0) {
+          const names = payload.assignedHostels
+            .map((hostel: any) => {
+              if (typeof hostel === 'string') return hostel.trim();
+              return String(hostel?.name || '').trim();
+            })
+            .filter(Boolean);
+
+          if (names.length > 0) {
+            return names.join(', ');
+          }
+        }
+
+        return 'Not Assigned';
+      };
+
+      const assignedNameFromApi = extractAssignedHostelName(res);
       if (assignedNameFromApi) {
         setAssignedHostelName(assignedNameFromApi);
-      } else if (Array.isArray(res.assignedHostels) && res.assignedHostels.length > 0) {
-        const names = res.assignedHostels
-          .map((hostel: any) => String(hostel?.name || '').trim())
-          .filter(Boolean);
-        setAssignedHostelName(names.length > 0 ? names.join(', ') : 'Not Assigned');
       } else {
         setAssignedHostelName('Not Assigned');
       }

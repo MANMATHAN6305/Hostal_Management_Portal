@@ -25,6 +25,7 @@ const messageRoutes = require('./routes/message.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 const normalizeOrigin = (origin) => origin.replace(/\/+$/, '').toLowerCase();
 
@@ -93,7 +94,7 @@ async function startServer() {
     await sequelize.sync({ alter: false });
     console.log('Database schema synchronized.');
     
-    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+    app.listen(PORT, HOST, () => console.log(`Server running on http://${HOST}:${PORT}`));
   } catch (error) {
     console.error('Database error:', error);
   }

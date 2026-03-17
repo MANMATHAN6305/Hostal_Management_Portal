@@ -34,6 +34,20 @@ const TABLE_MAP = {
 
 const TABLES_IN_ORDER = Object.keys(TABLE_MAP);
 
+const isIsoDateTime = (value) =>
+  typeof value === 'string' &&
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/.test(value);
+
+const normalizeSqlValue = (value) => {
+  if (!isIsoDateTime(value)) return value;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const pad = (num) => String(num).padStart(2, '0');
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
+};
+
 async function importData() {
   const dataPath = path.join(__dirname, 'localData.json');
   if (!fs.existsSync(dataPath)) {
@@ -84,7 +98,7 @@ async function importData() {
       const placeholders = batch
         .map(() => `(${columns.map(() => '?').join(',')})`)
         .join(',');
-      const values = batch.flatMap((row) => columns.map((col) => row[col] ?? null));
+      const values = batch.flatMap((row) => columns.map((col) => normalizeSqlValue(row[col] ?? null)));
 
       await conn.query(
         `INSERT INTO \`${mysqlTable}\` (${columns.map((c) => `\`${c}\``).join(',')}) VALUES ${placeholders}`,
