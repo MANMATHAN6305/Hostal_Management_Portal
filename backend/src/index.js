@@ -26,6 +26,14 @@ const messageRoutes = require('./routes/message.routes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
+const DB_CONNECT_RETRY_MS = parseInt(process.env.DB_CONNECT_RETRY_MS || '10000', 10);
+const DB_SYNC_ON_STARTUP =
+  String(
+    process.env.DB_SYNC_ON_STARTUP ??
+      (process.env.NODE_ENV === 'production' ? 'false' : 'true')
+  ).toLowerCase() === 'true';
+
+let isDatabaseReady = false;
 
 const normalizeOrigin = (origin) => origin.replace(/\/+$/, '').toLowerCase();
 
@@ -64,6 +72,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
+app.get('/health', (_req, res) => {
+  res.status(isDatabaseReady ? 200 : 503).json({
+    status: isDatabaseReady ? 'ok' : 'degraded',
+    database: isDatabaseReady ? 'connected' : 'disconnected'
+  });
+});
+
+app.use('/api', (req, res, next) => {
+  if (!isDatabaseReady) {
+    return res.status(503).json({
+      message: 'Database is temporarily unavailable. Please try again shortly.'
+    });
+  }
+
+  return next();
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/rooms', roomRoutes);
@@ -85,19 +110,35 @@ app.get('/', (_req, res) => {
   res.json({ message: 'Welcome to Hostel Management Portal API' });
 });
 
-async function startServer() {
-  try {
-    await sequelize.authenticate();
-    console.log('Database connected.');
-    
-    // Sync database schema
-    await sequelize.sync({ alter: false });
-    console.log('Database schema synchronized.');
-    
-    app.listen(PORT, HOST, () => console.log(`Server running on http://${HOST}:${PORT}`));
-  } catch (error) {
-    console.error('Database error:', error);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function initializeDatabase() {
+  while (!isDatabaseReady) {
+    try {
+      await sequelize.authenticate();
+      console.log('Database connected.');
+
+      if (DB_SYNC_ON_STARTUP) {
+        await sequelize.sync({ alter: false });
+        console.log('Database schema synchronized.');
+      }
+
+      isDatabaseReady = true;
+      return;
+    } catch (error) {
+      isDatabaseReady = false;
+      console.error(
+        `Database initialization failed. Retrying in ${DB_CONNECT_RETRY_MS}ms...`,
+        error.message || error
+      );
+      await sleep(DB_CONNECT_RETRY_MS);
+    }
   }
 }
 
-startServer();
+app.listen(PORT, HOST, () => {
+  console.log(`Server running on http://${HOST}:${PORT}`);
+  initializeDatabase().catch((error) => {
+    console.error('Unexpected database initializer error:', error);
+  });
+});

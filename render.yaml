@@ -22,6 +22,12 @@ services:
         sync: false
       - key: DB_SSL
         sync: false
+      - key: DB_SYNC_ON_STARTUP
+        sync: false
+      - key: DB_CONNECT_RETRY_MS
+        sync: false
+      - key: DB_CONNECT_TIMEOUT
+        sync: false
       - key: JWT_SECRET
         sync: false
       - key: FRONTEND_URL
