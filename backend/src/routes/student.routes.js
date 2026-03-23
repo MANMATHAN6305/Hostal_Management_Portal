@@ -1,12 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const Student = require('../models/Student');
-const Application = require('../models/Application');
 const Allocation = require('../models/Allocation');
 const Room = require('../models/Room');
 const Hostel = require('../models/Hostel');
 const { Op } = require('sequelize');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const {
+  DEPARTMENT_OPTIONS,
+  normalizeDepartment,
+  isValidDepartment,
+  sanitizePhoneNumber,
+  isValidPhoneNumber
+} = require('../utils/validation');
 
 const getWardenHostelNames = async (wardenId) => {
   const hostels = await Hostel.findAll({
@@ -69,21 +75,7 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res)
         order: [['id', 'DESC']]
       });
     } else {
-      const applicationRows = await Application.findAll({
-        attributes: ['StudentId'],
-        group: ['StudentId'],
-        raw: true
-      });
-      const studentIds = applicationRows.map((row) => row.StudentId).filter(Boolean);
-
-      if (studentIds.length === 0) {
-        return res.json([]);
-      }
-
       students = await Student.findAll({
-        where: {
-          id: { [Op.in]: studentIds }
-        },
         order: [['id', 'DESC']]
       });
     }
@@ -151,18 +143,34 @@ router.get('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, r
 // POST /api/students - Create new student
 router.post('/', async (req, res) => {
   try {
+    const normalizedDepartment = normalizeDepartment(req.body.department);
+    const normalizedPhone = sanitizePhoneNumber(req.body.phone);
+    const normalizedGuardianPhone = sanitizePhoneNumber(req.body.guardianPhone);
+
+    if (!isValidDepartment(normalizedDepartment)) {
+      return res.status(400).json({ message: `Invalid department. Allowed values: ${DEPARTMENT_OPTIONS.join(', ')}` });
+    }
+
+    if (!isValidPhoneNumber(normalizedPhone)) {
+      return res.status(400).json({ message: 'Phone number must be exactly 10 digits.' });
+    }
+
+    if (normalizedGuardianPhone && !isValidPhoneNumber(normalizedGuardianPhone)) {
+      return res.status(400).json({ message: 'Guardian phone number must be exactly 10 digits.' });
+    }
+
     const studentData = {
       studentId: req.body.studentId,
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       email: req.body.email,
-      phone: req.body.phone,
+      phone: normalizedPhone,
       address: req.body.address,
-      department: req.body.department,
+      department: normalizedDepartment,
       year: req.body.year,
       dateOfBirth: req.body.dateOfBirth,
       guardianName: req.body.guardianName,
-      guardianPhone: req.body.guardianPhone,
+      guardianPhone: normalizedGuardianPhone || null,
       bloodGroup: req.body.bloodGroup,
       gender: req.body.gender
     };
@@ -209,18 +217,34 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
     
+    const normalizedDepartment = normalizeDepartment(req.body.department);
+    const normalizedPhone = sanitizePhoneNumber(req.body.phone);
+    const normalizedGuardianPhone = sanitizePhoneNumber(req.body.guardianPhone);
+
+    if (!isValidDepartment(normalizedDepartment)) {
+      return res.status(400).json({ message: `Invalid department. Allowed values: ${DEPARTMENT_OPTIONS.join(', ')}` });
+    }
+
+    if (!isValidPhoneNumber(normalizedPhone)) {
+      return res.status(400).json({ message: 'Phone number must be exactly 10 digits.' });
+    }
+
+    if (normalizedGuardianPhone && !isValidPhoneNumber(normalizedGuardianPhone)) {
+      return res.status(400).json({ message: 'Guardian phone number must be exactly 10 digits.' });
+    }
+
     await student.update({
       studentId: req.body.studentId,
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       email: req.body.email,
-      phone: req.body.phone,
+      phone: normalizedPhone,
       address: req.body.address,
-      department: req.body.department,
+      department: normalizedDepartment,
       year: req.body.year,
       dateOfBirth: req.body.dateOfBirth,
       guardianName: req.body.guardianName,
-      guardianPhone: req.body.guardianPhone,
+      guardianPhone: normalizedGuardianPhone || null,
       bloodGroup: req.body.bloodGroup,
       gender: req.body.gender
     });

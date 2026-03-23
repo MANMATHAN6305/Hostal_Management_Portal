@@ -36,6 +36,8 @@ const stripBlockWord = (value: string | null | undefined) =>
 const getFreeBeds = (room: Room) =>
   Math.max(0, Number(room.capacity || 0) - Number(room.occupied || 0));
 
+const semesterOptions = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
 export default function AddAllocation() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -57,7 +59,7 @@ export default function AddAllocation() {
     hostelId: '',
     roomId: '',
     academicYear: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
-    semester: 'Fall',
+    semester: '1',
     status: 'ACTIVE',
     allocationDate: new Date().toISOString().split('T')[0],
     endDate: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split('T')[0],
@@ -67,7 +69,7 @@ export default function AddAllocation() {
     strategy: 'AUTO' as 'AUTO' | 'RANDOM',
     limit: 100,
     academicYear: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
-    semester: 'Fall',
+    semester: '1',
     allocationDate: new Date().toISOString().split('T')[0],
     endDate: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split('T')[0],
     specialRequests: ''
@@ -371,9 +373,11 @@ export default function AddAllocation() {
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
                   required
                 >
-                  <option value="Fall">Fall</option>
-                  <option value="Spring">Spring</option>
-                  <option value="Summer">Summer</option>
+                  {semesterOptions.map((semester) => (
+                    <option key={semester} value={semester}>
+                      {semester}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -556,9 +560,11 @@ export default function AddAllocation() {
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
                 >
-                  <option value="Fall">Fall</option>
-                  <option value="Spring">Spring</option>
-                  <option value="Summer">Summer</option>
+                  {semesterOptions.map((semester) => (
+                    <option key={semester} value={semester}>
+                      {semester}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

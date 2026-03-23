@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/Button';
 import { allocationsApi, roomsApi, studentsApi } from '@/lib/api';
 import type { Room, Student } from '@/types';
 
+const semesterOptions = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
 export default function EditAllocation() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -174,9 +176,9 @@ export default function EditAllocation() {
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
                 >
                   <option value="">Select semester</option>
-                  <option value="Fall">Fall</option>
-                  <option value="Spring">Spring</option>
-                  <option value="Summer">Summer</option>
+                  {semesterOptions.map((semester) => (
+                    <option key={semester} value={semester}>{semester}</option>
+                  ))}
                 </select>
               </div>
             </div>

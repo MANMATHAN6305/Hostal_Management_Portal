@@ -89,7 +89,11 @@ export default function EditWarden() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+    const value = e.target.type === 'checkbox'
+      ? (e.target as HTMLInputElement).checked
+      : e.target.name === 'phone'
+        ? e.target.value.replace(/\D/g, '').slice(0, 10)
+        : e.target.value;
     const nextData = { ...formData, [e.target.name]: value };
 
     if (e.target.name === 'gender') {
@@ -110,6 +114,11 @@ export default function EditWarden() {
 
     if (!formData.fullName || !formData.email || !formData.gender) {
       setError('Please fill in all required fields');
+      return;
+    }
+
+    if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
+      setError('Phone number must be exactly 10 digits.');
       return;
     }
 
@@ -203,10 +212,13 @@ export default function EditWarden() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                 <Input
+                  type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="+1234567890"
+                  placeholder="9876543210"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
                 />
               </div>
 

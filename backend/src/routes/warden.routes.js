@@ -8,6 +8,7 @@ const Student = require('../models/Student');
 const Allocation = require('../models/Allocation');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
+const { sanitizePhoneNumber, isValidPhoneNumber } = require('../utils/validation');
 
 const normalizeGender = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -183,6 +184,7 @@ router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
     const normalizedFullName = String(fullName || '').trim();
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const normalizedGender = normalizeGender(gender);
+    const normalizedPhone = phone ? sanitizePhoneNumber(phone) : '';
 
     if (!normalizedFullName || !normalizedEmail || !password) {
       return res.status(400).json({
@@ -195,6 +197,13 @@ router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid gender. Allowed values: male, female, other'
+      });
+    }
+
+    if (normalizedPhone && !isValidPhoneNumber(normalizedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number must be exactly 10 digits.'
       });
     }
 
@@ -233,7 +242,7 @@ router.post('/wardens', verifyToken, isAdmin, async (req, res) => {
       fullName: normalizedFullName,
       email: normalizedEmail,
       password: hashedPassword,
-      phone: phone ? String(phone).trim() : null,
+      phone: normalizedPhone || null,
       gender: normalizedGender,
       role: 'WARDEN',
       isActive: true
@@ -273,6 +282,7 @@ router.put('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
     const { fullName, email, phone, gender, hostelId, isActive, password } = req.body;
     const normalizedEmail = email !== undefined ? String(email || '').trim().toLowerCase() : undefined;
     const normalizedGender = gender !== undefined ? normalizeGender(gender) : undefined;
+    const normalizedPhone = phone !== undefined && phone !== null ? sanitizePhoneNumber(phone) : undefined;
 
     const warden = await User.findOne({
       where: { id: req.params.id, role: 'WARDEN' }
@@ -300,6 +310,13 @@ router.put('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid gender. Allowed values: male, female, other'
+      });
+    }
+
+    if (phone !== undefined && phone !== null && String(phone).trim() !== '' && !isValidPhoneNumber(normalizedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number must be exactly 10 digits.'
       });
     }
 
@@ -337,7 +354,7 @@ router.put('/wardens/:id', verifyToken, isAdmin, async (req, res) => {
     // Update warden details
     if (fullName) warden.fullName = String(fullName).trim();
     if (normalizedEmail) warden.email = normalizedEmail;
-    if (phone !== undefined) warden.phone = phone ? String(phone).trim() : null;
+    if (phone !== undefined) warden.phone = String(phone || '').trim() ? normalizedPhone : null;
     if (gender !== undefined) warden.gender = normalizedGender;
     if (isActive !== undefined) warden.isActive = isActive;
     if (password) {

@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { studentsApi } from '@/lib/api';
+import { DEPARTMENT_OPTIONS, DEPARTMENT_VALUES } from '@/data/departments';
 
 export default function AddStudent() {
   const navigate = useNavigate();
@@ -25,11 +26,39 @@ export default function AddStudent() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === 'phone' || name === 'guardianPhone') {
+      setFormData({ ...formData, [name]: value.replace(/\D/g, '').slice(0, 10) });
+      return;
+    }
+
+    if (name === 'department') {
+      setFormData({ ...formData, [name]: value.toUpperCase() });
+      return;
+    }
+
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!/^\d{10}$/.test(formData.phone)) {
+      alert('Phone number must be exactly 10 digits.');
+      return;
+    }
+
+    if (formData.guardianPhone && !/^\d{10}$/.test(formData.guardianPhone)) {
+      alert('Guardian phone number must be exactly 10 digits.');
+      return;
+    }
+
+    if (!DEPARTMENT_VALUES.includes(formData.department as any)) {
+      alert('Please select a valid department.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -91,18 +120,16 @@ export default function AddStudent() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Phone *</label>
-                <Input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="9876543210" required />
+                <Input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="9876543210" maxLength={10} pattern="[0-9]{10}" required />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Department *</label>
                 <select name="department" value={formData.department} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500" required>
                   <option value="">Select Department</option>
-                  <option value="CSE">Computer Science (CSE)</option>
-                  <option value="ECE">Electronics (ECE)</option>
-                  <option value="MECH">Mechanical (MECH)</option>
-                  <option value="CIVIL">Civil (CIVIL)</option>
-                  <option value="EEE">Electrical (EEE)</option>
+                  {DEPARTMENT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -144,7 +171,7 @@ export default function AddStudent() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Guardian Phone</label>
-                <Input type="tel" name="guardianPhone" value={formData.guardianPhone} onChange={handleChange} placeholder="Guardian phone number" />
+                <Input type="tel" name="guardianPhone" value={formData.guardianPhone} onChange={handleChange} placeholder="Guardian phone number" maxLength={10} pattern="[0-9]{10}" />
               </div>
             </div>
 

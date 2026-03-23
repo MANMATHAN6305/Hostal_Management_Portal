@@ -83,7 +83,10 @@ export default function AddWarden() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const nextData = { ...formData, [e.target.name]: e.target.value };
+    const name = e.target.name;
+    const rawValue = e.target.value;
+    const value = name === 'phone' ? rawValue.replace(/\D/g, '').slice(0, 10) : rawValue;
+    const nextData = { ...formData, [name]: value };
 
     if (e.target.name === 'gender') {
       nextData.hostelId = '';
@@ -103,6 +106,11 @@ export default function AddWarden() {
 
     if (!formData.fullName || !formData.email || !formData.password || !formData.gender) {
       setError('Please fill in all required fields');
+      return;
+    }
+
+    if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
+      setError('Phone number must be exactly 10 digits.');
       return;
     }
 
@@ -182,10 +190,13 @@ export default function AddWarden() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                 <Input
+                  type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="+1234567890"
+                  placeholder="9876543210"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
                 />
               </div>
 

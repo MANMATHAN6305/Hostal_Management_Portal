@@ -234,18 +234,16 @@ router.post('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, res
       return res.status(400).json({ message: 'Room is fully occupied. No beds available.' });
     }
 
-    // Step 3: Check if student is already allocated to a room in the same academic year/semester
+    // Step 3: Enforce one active allocation per student at a time.
     const existingAllocation = await Allocation.findOne({
       where: {
         StudentId: studentId,
-        academicYear: academicYear,
-        semester: semester,
         status: 'ACTIVE'
       }
     });
 
     if (existingAllocation) {
-      return res.status(400).json({ message: 'Student already has an active room allocation for this academic year/semester' });
+      return res.status(400).json({ message: 'Student already has an active room allocation.' });
     }
 
     // Step 4: Create the allocation
@@ -378,8 +376,6 @@ router.post('/auto-allocate', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), as
       const existingAllocations = await Allocation.findAll({
         where: {
           StudentId: { [Op.in]: studentIdsInScope },
-          academicYear,
-          semester,
           status: 'ACTIVE'
         },
         attributes: ['StudentId'],
@@ -470,7 +466,7 @@ router.post('/auto-allocate', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), as
           unallocated.push({
             studentId: Number(student.id),
             studentName: `${student.firstName} ${student.lastName || ''}`.trim(),
-            reason: 'Student already has active allocation for this academic year/semester.'
+            reason: 'Student already has an active allocation.'
           });
         }
       }
@@ -566,6 +562,7 @@ router.put('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, r
     const oldStatus = allocation.status;
     const newRoomId = req.body.roomId ? Number(req.body.roomId) : oldRoomId;
     const newStatus = req.body.status;
+    const resolvedNextStatus = newStatus || oldStatus;
     const nextStudentId = req.body.studentId ? Number(req.body.studentId) : allocation.StudentId;
 
     const nextStudent = await Student.findByPk(nextStudentId);
@@ -575,6 +572,20 @@ router.put('/:id', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async (req, r
 
     if (!['MALE', 'FEMALE'].includes(nextStudent.gender)) {
       return res.status(400).json({ message: 'Student gender must be set before allocation.' });
+    }
+
+    if (resolvedNextStatus === 'ACTIVE') {
+      const conflictingActiveAllocation = await Allocation.findOne({
+        where: {
+          StudentId: nextStudentId,
+          status: 'ACTIVE',
+          id: { [Op.ne]: allocation.id }
+        }
+      });
+
+      if (conflictingActiveAllocation) {
+        return res.status(400).json({ message: 'Student already has an active room allocation.' });
+      }
     }
 
     if (req.user.role === 'WARDEN') {

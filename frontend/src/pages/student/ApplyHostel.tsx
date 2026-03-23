@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { studentApi } from '@/lib/api';
 import { Card, CardContent, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { DEPARTMENT_OPTIONS, DEPARTMENT_VALUES } from '@/data/departments';
 
 type ApplicationForm = {
   fullName: string;
@@ -31,6 +32,11 @@ const initialForm: ApplicationForm = {
   relationship: '',
   guardianContactNumber: '',
   guardianAddress: ''
+};
+
+const normalizeDepartmentValue = (value: string) => {
+  const normalized = String(value || '').trim().toUpperCase();
+  return DEPARTMENT_VALUES.includes(normalized as any) ? normalized : '';
 };
 
 const FormInput = ({ label, value, onChange, type = 'text', placeholder = '', required = false, pattern, maxLength }: any) => (
@@ -98,7 +104,7 @@ export default function ApplyHostel() {
       ...prev,
       fullName: [student.firstName, student.lastName].filter(Boolean).join(' ').trim() || prev.fullName,
       registerNumber: student.studentId || prev.registerNumber,
-      department: student.department || prev.department,
+      department: normalizeDepartmentValue(student.department) || prev.department,
       yearOfStudy: student.year ? String(student.year) as '1' | '2' | '3' | '4' : prev.yearOfStudy,
       gender: student.gender === 'FEMALE' ? 'FEMALE' : student.gender === 'OTHER' ? 'OTHER' : 'MALE',
       dateOfBirth: student.dateOfBirth || prev.dateOfBirth,
@@ -114,7 +120,7 @@ export default function ApplyHostel() {
     setForm({
       fullName: app.fullName || '',
       registerNumber: app.registerNumber || '',
-      department: app.department || '',
+      department: normalizeDepartmentValue(app.department),
       yearOfStudy: app.yearOfStudy || '1',
       gender: app.gender || 'MALE',
       dateOfBirth: app.dateOfBirth || '',
@@ -181,13 +187,28 @@ export default function ApplyHostel() {
       return;
     }
 
+    if (!DEPARTMENT_VALUES.includes(form.department as any)) {
+      setError('Please select a valid department from the dropdown.');
+      return;
+    }
+
+    if (!/^\d{10}$/.test(form.mobileNumber)) {
+      setError('Mobile number must be exactly 10 digits.');
+      return;
+    }
+
+    if (!/^\d{10}$/.test(form.guardianContactNumber)) {
+      setError('Guardian contact number must be exactly 10 digits.');
+      return;
+    }
+
     setLoading(true);
     try {
       if (latestApplication && isEditing) {
         await studentApi.updateApplication(latestApplication.id, {
           fullName: form.fullName.trim(),
           registerNumber: form.registerNumber.trim(),
-          department: form.department.trim(),
+          department: normalizeDepartmentValue(form.department),
           yearOfStudy: form.yearOfStudy,
           gender: form.gender,
           dateOfBirth: form.dateOfBirth,
@@ -203,7 +224,7 @@ export default function ApplyHostel() {
         await studentApi.submitApplication({
           fullName: form.fullName.trim(),
           registerNumber: form.registerNumber.trim(),
-          department: form.department.trim(),
+          department: normalizeDepartmentValue(form.department),
           yearOfStudy: form.yearOfStudy,
           gender: form.gender,
           dateOfBirth: form.dateOfBirth,
@@ -279,11 +300,14 @@ export default function ApplyHostel() {
                   placeholder="e.g., 2021B123"
                   required
                 />
-                <FormInput 
-                  label="Department" 
-                  value={form.department} 
-                  onChange={(e: any) => onChange('department', e.target.value)} 
-                  placeholder="e.g., Computer Science"
+                <FormSelect
+                  label="Department"
+                  value={form.department}
+                  onChange={(e: any) => onChange('department', e.target.value)}
+                  options={[
+                    { value: '', label: 'Select Department' },
+                    ...DEPARTMENT_OPTIONS
+                  ]}
                   required
                 />
                 <FormSelect 

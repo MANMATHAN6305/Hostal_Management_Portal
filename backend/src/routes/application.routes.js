@@ -7,6 +7,13 @@ const Room = require('../models/Room');
 const Allocation = require('../models/Allocation');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { Op } = require('sequelize');
+const {
+  DEPARTMENT_OPTIONS,
+  normalizeDepartment,
+  isValidDepartment,
+  sanitizePhoneNumber,
+  isValidPhoneNumber
+} = require('../utils/validation');
 
 const buildStudentId = () => `STU${Date.now()}${Math.floor(Math.random() * 1000)}`;
 const requiredFields = [
@@ -95,6 +102,31 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
       });
     }
 
+    const normalizedDepartment = normalizeDepartment(req.body.department);
+    const normalizedMobile = sanitizePhoneNumber(req.body.mobileNumber);
+    const normalizedGuardianContact = sanitizePhoneNumber(req.body.guardianContactNumber);
+
+    if (!isValidDepartment(normalizedDepartment)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid department. Allowed values: ${DEPARTMENT_OPTIONS.join(', ')}`
+      });
+    }
+
+    if (!isValidPhoneNumber(normalizedMobile)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number must be exactly 10 digits.'
+      });
+    }
+
+    if (!isValidPhoneNumber(normalizedGuardianContact)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Guardian contact number must be exactly 10 digits.'
+      });
+    }
+
     let student = await Student.findOne({ where: { email: req.user.email } });
 
     const nameParts = String(req.body.fullName).trim().split(/\s+/);
@@ -107,13 +139,13 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
         firstName,
         lastName,
         email: req.user.email,
-        phone: req.body.mobileNumber || null,
-        department: req.body.department || null,
+        phone: normalizedMobile || null,
+        department: normalizedDepartment || null,
         year: req.body.yearOfStudy ? Number(req.body.yearOfStudy) : null,
         dateOfBirth: req.body.dateOfBirth || null,
         gender: req.body.gender || 'Select Gender',
         guardianName: req.body.guardianName || null,
-        guardianPhone: req.body.guardianContactNumber || null,
+        guardianPhone: normalizedGuardianContact || null,
         address: req.body.guardianAddress || null
       });
     }
@@ -126,13 +158,13 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
       firstName: updatedFirstName,
       lastName: updatedLastName,
       email: req.user.email,
-      phone: req.body.mobileNumber || student.phone,
-      department: req.body.department || student.department,
+      phone: normalizedMobile || student.phone,
+      department: normalizedDepartment || student.department,
       year: req.body.yearOfStudy ? Number(req.body.yearOfStudy) : student.year,
       dateOfBirth: req.body.dateOfBirth || student.dateOfBirth,
       gender: req.body.gender || student.gender,
       guardianName: req.body.guardianName || student.guardianName,
-      guardianPhone: req.body.guardianContactNumber || student.guardianPhone,
+      guardianPhone: normalizedGuardianContact || student.guardianPhone,
       address: req.body.guardianAddress || student.address
     });
 
@@ -154,18 +186,18 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
       HostelId: req.body.hostelId || null,
       fullName: req.body.fullName,
       registerNumber: req.body.registerNumber,
-      department: req.body.department,
+      department: normalizedDepartment,
       yearOfStudy: req.body.yearOfStudy,
       gender: req.body.gender,
       dateOfBirth: req.body.dateOfBirth,
       studentEmail: req.body.studentEmail,
-      mobileNumber: req.body.mobileNumber,
+      mobileNumber: normalizedMobile,
       roomType: req.body.roomType || null,
       blockName: req.body.blockName || null,
       specialPreferences: req.body.specialPreferences || null,
       guardianName: req.body.guardianName,
       relationship: req.body.relationship,
-      guardianContactNumber: req.body.guardianContactNumber,
+      guardianContactNumber: normalizedGuardianContact,
       guardianAddress: req.body.guardianAddress,
       preferredRoomType: req.body.preferredRoomType || null,
       reason: req.body.reason || null
@@ -178,6 +210,31 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
 
 router.put('/:id', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
   try {
+        const normalizedDepartment = normalizeDepartment(req.body.department);
+        const normalizedMobile = sanitizePhoneNumber(req.body.mobileNumber);
+        const normalizedGuardianContact = sanitizePhoneNumber(req.body.guardianContactNumber);
+
+        if (!isValidDepartment(normalizedDepartment)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid department. Allowed values: ${DEPARTMENT_OPTIONS.join(', ')}`
+          });
+        }
+
+        if (!isValidPhoneNumber(normalizedMobile)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Mobile number must be exactly 10 digits.'
+          });
+        }
+
+        if (!isValidPhoneNumber(normalizedGuardianContact)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Guardian contact number must be exactly 10 digits.'
+          });
+        }
+
     const missing = getMissingFields(req.body);
     if (missing.length > 0) {
       return res.status(400).json({
@@ -211,13 +268,13 @@ router.put('/:id', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
       firstName,
       lastName,
       email: req.user.email,
-      phone: req.body.mobileNumber || student.phone,
-      department: req.body.department || student.department,
+      phone: normalizedMobile || student.phone,
+      department: normalizedDepartment || student.department,
       year: req.body.yearOfStudy ? Number(req.body.yearOfStudy) : student.year,
       dateOfBirth: req.body.dateOfBirth || student.dateOfBirth,
       gender: req.body.gender || student.gender,
       guardianName: req.body.guardianName || student.guardianName,
-      guardianPhone: req.body.guardianContactNumber || student.guardianPhone,
+      guardianPhone: normalizedGuardianContact || student.guardianPhone,
       address: req.body.guardianAddress || student.address
     });
 
@@ -225,18 +282,18 @@ router.put('/:id', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
       HostelId: req.body.hostelId || application.HostelId,
       fullName: req.body.fullName,
       registerNumber: req.body.registerNumber,
-      department: req.body.department,
+      department: normalizedDepartment,
       yearOfStudy: req.body.yearOfStudy,
       gender: req.body.gender,
       dateOfBirth: req.body.dateOfBirth,
       studentEmail: req.body.studentEmail,
-      mobileNumber: req.body.mobileNumber,
+      mobileNumber: normalizedMobile,
       roomType: req.body.roomType || null,
       blockName: req.body.blockName || null,
       specialPreferences: req.body.specialPreferences || null,
       guardianName: req.body.guardianName,
       relationship: req.body.relationship,
-      guardianContactNumber: req.body.guardianContactNumber,
+      guardianContactNumber: normalizedGuardianContact,
       guardianAddress: req.body.guardianAddress,
       preferredRoomType: req.body.preferredRoomType || null,
       reason: req.body.reason || null
