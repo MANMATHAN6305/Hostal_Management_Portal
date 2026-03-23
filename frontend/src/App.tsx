@@ -26,6 +26,7 @@ import WardenDetails from './pages/admin/WardenDetails';
 import AdminMessages from './pages/admin/AdminMessages';
 
 import StudentDashboard from './pages/student/StudentDashboard';
+import StudentAttendance from './pages/student/Attendance';
 import MyRoom from './pages/student/MyRoom';
 import StudentComplaints from './pages/student/Complaints';
 import StudentMenu from './pages/student/Menu';
@@ -77,6 +78,7 @@ function App() {
         <Route path="/student" element={<StudentDashboardLayout />}>
           <Route index element={<Navigate to="/student/dashboard" replace />} />
           <Route path="dashboard" element={<StudentDashboard />} />
+          <Route path="attendance" element={<StudentAttendance />} />
           <Route path="apply" element={<ApplyHostel />} />
           <Route path="room" element={<MyRoom />} />
           <Route path="complaints" element={<StudentComplaints />} />

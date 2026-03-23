@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const navItems = [
   { href: '/student/dashboard', label: 'Dashboard' },
+  { href: '/student/attendance', label: 'Attendance' },
   { href: '/student/apply', label: 'Apply Hostel' },
   { href: '/student/room', label: 'My Room' },
   { href: '/student/complaints', label: 'Complaints' },

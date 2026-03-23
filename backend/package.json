@@ -15,6 +15,7 @@
     "seed:rooms": "node src/seeds/seedRooms.js",
     "seed:hostels": "node src/seeds/seedHostels.js",
     "seed:demo": "node src/seeds/seedRooms.js",
+    "seed:attendance": "node src/seeds/seedAttendance.js",
     "seed:import": "node src/seeds/importLocalData.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

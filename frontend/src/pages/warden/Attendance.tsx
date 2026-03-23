@@ -3,6 +3,22 @@ import { wardenApi } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
+const formatAttendanceTime = (value?: string | null) => {
+  if (!value) return '-';
+
+  const [hourText = '0', minuteText = '00'] = String(value).split(':');
+  const hour = Number.parseInt(hourText, 10);
+  const minute = Number.parseInt(minuteText, 10);
+
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+    return value;
+  }
+
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${String(minute).padStart(2, '0')} ${suffix}`;
+};
+
 export default function WardenAttendance() {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [search, setSearch] = useState('');
@@ -158,8 +174,8 @@ export default function WardenAttendance() {
                               {a.Student?.firstName} {a.Student?.lastName}
                             </td>
                             <td className="py-3 px-4 text-gray-700">{a.date}</td>
-                            <td className="py-3 px-4 text-gray-700">{a.checkInTime || '-'}</td>
-                            <td className="py-3 px-4 text-gray-700">{a.checkOutTime || '-'}</td>
+                            <td className="py-3 px-4 text-gray-700">{formatAttendanceTime(a.checkInTime)}</td>
+                            <td className="py-3 px-4 text-gray-700">{formatAttendanceTime(a.checkOutTime)}</td>
                             <td className="py-3 px-4 text-gray-600 text-sm">{a.deviceId || 'N/A'}</td>
                             <td className="py-3 px-4 text-center">
                               {a.checkInTime ? (
@@ -215,11 +231,11 @@ export default function WardenAttendance() {
                         </div>
                         <div className="bg-green-50 rounded-lg p-2">
                           <p className="text-green-700 font-medium mb-0.5">Check-in</p>
-                          <p className="text-green-900">{a.checkInTime || '-'}</p>
+                          <p className="text-green-900">{formatAttendanceTime(a.checkInTime)}</p>
                         </div>
                         <div className="bg-orange-50 rounded-lg p-2">
                           <p className="text-orange-700 font-medium mb-0.5">Check-out</p>
-                          <p className="text-orange-900">{a.checkOutTime || '-'}</p>
+                          <p className="text-orange-900">{formatAttendanceTime(a.checkOutTime)}</p>
                         </div>
                       </div>
                     </div>

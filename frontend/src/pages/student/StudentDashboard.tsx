@@ -133,6 +133,7 @@ export default function StudentDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickActionButton icon="🏫" label="Apply Hostel" href="/student/apply" />
           <QuickActionButton icon="🏠" label="My Room" href="/student/room" />
+          <QuickActionButton icon="📊" label="Attendance" href="/student/attendance" />
           <QuickActionButton icon="📝" label="My Complaints" href="/student/complaints" />
           <QuickActionButton icon="🍽️" label="Meal Menu" href="/student/menu" />
         </div>

@@ -163,6 +163,7 @@ export const allocationsApi = {
 export const studentApi = {
   getProfile: () => unwrap(api.get('/student/me')),
   getRoom: () => unwrap(api.get('/student/room')),
+  getAttendance: () => unwrap(api.get('/student/attendance')),
   getMenu: () => unwrap(api.get('/student/menu')),
   getComplaints: () => unwrap(api.get('/complaints')),
   submitComplaint: (data: { message: string; category: string }) => unwrap(api.post('/complaints', data)),

@@ -5,6 +5,7 @@ const Student = require('../models/Student');
 const Room = require('../models/Room');
 const Allocation = require('../models/Allocation');
 const Complaint = require('../models/Complaint');
+const Attendance = require('../models/Attendance');
 const Menu = require('../models/Menu');
 const User = require('../models/User');
 const Hostel = require('../models/Hostel');
@@ -328,6 +329,42 @@ router.get('/complaints', verifyToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Server error fetching complaints' 
+    });
+  }
+});
+
+// GET /api/student/attendance - Get attendance records for logged-in student
+router.get('/attendance', verifyToken, async (req, res) => {
+  try {
+    const student = await getStudentFromTokenUser(req.user);
+
+    if (!student) {
+      return res.json({
+        success: true,
+        attendance: [],
+        message: 'Complete Apply Hostel form to view attendance records.'
+      });
+    }
+
+    const where = { StudentId: student.id };
+
+    if (req.query.dateFrom || req.query.dateTo) {
+      where.date = {};
+      if (req.query.dateFrom) where.date[Op.gte] = req.query.dateFrom;
+      if (req.query.dateTo) where.date[Op.lte] = req.query.dateTo;
+    }
+
+    const attendance = await Attendance.findAll({
+      where,
+      order: [['date', 'DESC']]
+    });
+
+    return res.json({ success: true, attendance });
+  } catch (error) {
+    console.error('Get student attendance error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching attendance records'
     });
   }
 });
