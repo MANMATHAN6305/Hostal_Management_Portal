@@ -68,7 +68,7 @@ export default function StudentAttendance() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 attendance-page">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">My Attendance</h1>
         <p className="text-gray-600 mt-1">View your daily check-in and check-out history</p>
@@ -150,11 +150,11 @@ export default function StudentAttendance() {
                       <td className="py-3 px-4 text-gray-600 text-sm">{entry.deviceId || 'N/A'}</td>
                       <td className="py-3 px-4 text-center">
                         {entry.checkInTime ? (
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                          <span className="attendance-status-present inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                             Present
                           </span>
                         ) : (
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                          <span className="attendance-status-absent inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
                             Absent
                           </span>
                         )}

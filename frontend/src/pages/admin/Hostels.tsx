@@ -145,25 +145,25 @@ export default function AdminHostels() {
       {/* Summary Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="py-4">
+          <CardContent className="py-4 text-center">
             <p className="text-sm text-gray-600 mb-1">Total Hostels</p>
             <p className="text-3xl font-bold text-gray-900">{hostels.length}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="py-4">
+          <CardContent className="py-4 text-center">
             <p className="text-sm text-gray-600 mb-1">Boys Hostels</p>
             <p className="text-3xl font-bold text-blue-600">{maleHostels.length}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="py-4">
+          <CardContent className="py-4 text-center">
             <p className="text-sm text-gray-600 mb-1">Girls Hostels</p>
             <p className="text-3xl font-bold text-pink-600">{femaleHostels.length}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="py-4">
+          <CardContent className="py-4 text-center">
             <p className="text-sm text-gray-600 mb-1">Total Rooms</p>
             <p className="text-3xl font-bold text-green-600">
               {hostels.reduce((sum, h) => sum + (h.actualRoomCount || 0), 0)}

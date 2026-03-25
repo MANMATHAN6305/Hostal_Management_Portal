@@ -46,7 +46,7 @@ export default function WardenAttendance() {
   const totalStudents = attendance.length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 attendance-page">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Biometric Attendance</h1>
@@ -179,11 +179,11 @@ export default function WardenAttendance() {
                             <td className="py-3 px-4 text-gray-600 text-sm">{a.deviceId || 'N/A'}</td>
                             <td className="py-3 px-4 text-center">
                               {a.checkInTime ? (
-                                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                <span className="attendance-status-present inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                                   ✓ Present
                                 </span>
                               ) : (
-                                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                                <span className="attendance-status-absent inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
                                   ✗ Absent
                                 </span>
                               )}
@@ -211,11 +211,11 @@ export default function WardenAttendance() {
                           <p className="text-sm text-gray-600">{a.Student?.studentId || 'N/A'}</p>
                         </div>
                         {a.checkInTime ? (
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                          <span className="attendance-status-present inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                             ✓ Present
                           </span>
                         ) : (
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                          <span className="attendance-status-absent inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
                             ✗ Absent
                           </span>
                         )}

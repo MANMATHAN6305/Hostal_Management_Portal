@@ -12,10 +12,196 @@
   --accent: #3d3d3d;
 }
 
+[data-theme='dark'] {
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --primary: #e2e8f0;
+  --primary-light: #94a3b8;
+  --accent: #38bdf8;
+  --surface: #111827;
+  --surface-muted: #1f2937;
+  --surface-strong: #0b1220;
+  --border-dark: #334155;
+  color-scheme: dark;
+}
+
+[data-theme='dark'] #root {
+  color: #f8fafc;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Inter', Arial, Helvetica, sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Global dark theme support for existing Tailwind utility classes used across pages */
+[data-theme='dark'] .bg-white,
+[data-theme='dark'] .bg-gray-50,
+[data-theme='dark'] .bg-gray-100,
+[data-theme='dark'] .bg-slate-100 {
+  background-color: var(--surface) !important;
+}
+
+[data-theme='dark'] .bg-gray-200 {
+  background-color: var(--surface-muted) !important;
+}
+
+[data-theme='dark'] .bg-blue-50,
+[data-theme='dark'] .bg-blue-50\/80,
+[data-theme='dark'] .bg-blue-50\/90 {
+  background-color: #0b2346 !important;
+}
+
+[data-theme='dark'] .bg-purple-50,
+[data-theme='dark'] .bg-purple-50\/80,
+[data-theme='dark'] .bg-purple-50\/90 {
+  background-color: #251042 !important;
+}
+
+[data-theme='dark'] .bg-red-50,
+[data-theme='dark'] .bg-red-50\/80,
+[data-theme='dark'] .bg-red-50\/90 {
+  background-color: #3b0d13 !important;
+}
+
+[data-theme='dark'] .bg-yellow-50,
+[data-theme='dark'] .bg-yellow-50\/80,
+[data-theme='dark'] .bg-yellow-50\/90 {
+  background-color: #3a2a08 !important;
+}
+
+[data-theme='dark'] .bg-green-50,
+[data-theme='dark'] .bg-green-50\/80,
+[data-theme='dark'] .bg-green-50\/90 {
+  background-color: #0f2e1f !important;
+}
+
+[data-theme='dark'] .bg-white\/70,
+[data-theme='dark'] .bg-white\/80,
+[data-theme='dark'] .bg-white\/90,
+[data-theme='dark'] .bg-gray-50\/80,
+[data-theme='dark'] .bg-gray-50\/90 {
+  background-color: var(--surface-muted) !important;
+}
+
+[data-theme='dark'] .text-gray-900,
+[data-theme='dark'] .text-gray-800,
+[data-theme='dark'] .text-gray-700,
+[data-theme='dark'] .text-black,
+[data-theme='dark'] .text-slate-900,
+[data-theme='dark'] .text-slate-800,
+[data-theme='dark'] .text-slate-700 {
+  color: #f1f5f9 !important;
+}
+
+[data-theme='dark'] .text-gray-600,
+[data-theme='dark'] .text-gray-500,
+[data-theme='dark'] .text-gray-400,
+[data-theme='dark'] .text-slate-600,
+[data-theme='dark'] .text-slate-500,
+[data-theme='dark'] .text-slate-400,
+[data-theme='dark'] .text-neutral-600,
+[data-theme='dark'] .text-neutral-500,
+[data-theme='dark'] .text-neutral-400 {
+  color: #cbd5e1 !important;
+}
+
+[data-theme='dark'] .border,
+[data-theme='dark'] .border-gray-100,
+[data-theme='dark'] .border-gray-200,
+[data-theme='dark'] .border-gray-300,
+[data-theme='dark'] .border-slate-200,
+[data-theme='dark'] .border-slate-300 {
+  border-color: rgba(255, 255, 255, 0.28) !important;
+}
+
+[data-theme='dark'] .hover\:bg-gray-50:hover,
+[data-theme='dark'] .hover\:bg-gray-100:hover,
+[data-theme='dark'] .hover\:bg-gray-200:hover,
+[data-theme='dark'] .hover\:bg-slate-100:hover {
+  background-color: #243244 !important;
+}
+
+[data-theme='dark'] .text-blue-900,
+[data-theme='dark'] .text-purple-900,
+[data-theme='dark'] .text-green-900,
+[data-theme='dark'] .text-yellow-900,
+[data-theme='dark'] .text-red-900 {
+  color: #e2e8f0 !important;
+}
+
+[data-theme='dark'] .text-blue-700,
+[data-theme='dark'] .text-purple-700,
+[data-theme='dark'] .text-green-700,
+[data-theme='dark'] .text-yellow-700,
+[data-theme='dark'] .text-red-700 {
+  color: #93c5fd !important;
+}
+
+[data-theme='dark'] h1:not([class*='text-']),
+[data-theme='dark'] h2:not([class*='text-']),
+[data-theme='dark'] h3:not([class*='text-']),
+[data-theme='dark'] h4:not([class*='text-']),
+[data-theme='dark'] h5:not([class*='text-']),
+[data-theme='dark'] h6:not([class*='text-']) {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] p:not([class*='text-']),
+[data-theme='dark'] span:not([class*='text-']),
+[data-theme='dark'] td:not([class*='text-']),
+[data-theme='dark'] th:not([class*='text-']),
+[data-theme='dark'] li:not([class*='text-']),
+[data-theme='dark'] label:not([class*='text-']) {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] table thead,
+[data-theme='dark'] table thead tr,
+[data-theme='dark'] .bg-gray-50 thead {
+  background-color: var(--surface-muted) !important;
+}
+
+[data-theme='dark'] table tbody tr {
+  border-color: var(--border-dark) !important;
+}
+
+[data-theme='dark'] aside {
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+[data-theme='dark'] .shadow-sm,
+[data-theme='dark'] .shadow,
+[data-theme='dark'] .shadow-md,
+[data-theme='dark'] .shadow-lg,
+[data-theme='dark'] .shadow-xl {
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.45) !important;
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] select,
+[data-theme='dark'] textarea {
+  background-color: var(--surface-strong);
+  color: #f1f5f9;
+  border-color: var(--border-dark);
+}
+
+[data-theme='dark'] input::placeholder,
+[data-theme='dark'] textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Keep Present/Absent status badges unchanged on attendance pages */
+[data-theme='dark'] .attendance-page .attendance-status-present {
+  background-color: rgb(220 252 231) !important;
+  color: rgb(21 128 61) !important;
+}
+
+[data-theme='dark'] .attendance-page .attendance-status-absent {
+  background-color: rgb(254 226 226) !important;
+  color: rgb(185 28 28) !important;
 }
 
 /* Custom scrollbar */
