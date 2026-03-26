@@ -218,13 +218,17 @@ body {
 }
 
 [data-theme='dark'] .react-select__option--is-focused {
-  background-color: #1e293b !important;
+  background-color: #1b2638 !important;
   color: #e2e8f0 !important;
 }
 
 [data-theme='dark'] .react-select__option--is-selected {
-  background-color: #334155 !important;
+  background-color: #253449 !important;
   color: #f8fafc !important;
+}
+
+[data-theme='dark'] .react-select__option:active {
+  background-color: #2b3a50 !important;
 }
 
 [data-theme='dark'] .react-select__indicator,
@@ -269,7 +273,7 @@ body {
 
 [data-theme='dark'] .hover\:bg-blue-700:hover,
 [data-theme='dark'] .hover\:bg-blue-600:hover {
-  background-color: #1d4ed8 !important;
+  background-color: #1e40af !important;
 }
 
 [data-theme='dark'] .hover\:bg-emerald-700:hover,
