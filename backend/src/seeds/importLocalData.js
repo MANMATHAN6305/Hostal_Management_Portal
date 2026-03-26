@@ -1,6 +1,8 @@
 /**
  * Import local data into the connected database.
- * Run once on the server: node src/seeds/importLocalData.js
+ * Safe defaults:
+ * - Imports only when DB is empty.
+ * - Set SEED_IMPORT_FORCE=true to re-import and reset tables.
  */
 console.log('=== IMPORT SCRIPT STARTED ===');
 console.log('CWD:', process.cwd());
@@ -33,6 +35,11 @@ const TABLE_MAP = {
 };
 
 const TABLES_IN_ORDER = Object.keys(TABLE_MAP);
+const MYSQL_TABLES = Object.values(TABLE_MAP);
+
+const FORCE_IMPORT = String(process.env.SEED_IMPORT_FORCE || 'false').toLowerCase() === 'true';
+const IMPORT_IF_EMPTY_ONLY =
+  String(process.env.SEED_IMPORT_IF_EMPTY_ONLY ?? 'true').toLowerCase() === 'true';
 
 const isIsoDateTime = (value) =>
   typeof value === 'string' &&
@@ -47,6 +54,20 @@ const normalizeSqlValue = (value) => {
   const pad = (num) => String(num).padStart(2, '0');
   return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
 };
+
+async function getNonEmptyTables(conn) {
+  const nonEmpty = [];
+
+  for (const table of MYSQL_TABLES) {
+    const [rows] = await conn.query(`SELECT COUNT(*) AS count FROM \`${table}\``);
+    const count = Number(rows?.[0]?.count || 0);
+    if (count > 0) {
+      nonEmpty.push({ table, count });
+    }
+  }
+
+  return nonEmpty;
+}
 
 async function importData() {
   const dataPath = path.join(__dirname, 'localData.json');
@@ -77,6 +98,21 @@ async function importData() {
   });
 
   console.log('Connected to database.');
+
+  if (IMPORT_IF_EMPTY_ONLY && !FORCE_IMPORT) {
+    const nonEmptyTables = await getNonEmptyTables(conn);
+    if (nonEmptyTables.length > 0) {
+      console.log('Import skipped: database already contains data.');
+      console.log(
+        `Non-empty tables: ${nonEmptyTables
+          .map((entry) => `${entry.table}(${entry.count})`)
+          .join(', ')}`
+      );
+      console.log('Set SEED_IMPORT_FORCE=true to re-import and reset tables.');
+      await conn.end();a
+      return;
+    }
+  }
 
   await conn.query('SET FOREIGN_KEY_CHECKS = 0');
 
