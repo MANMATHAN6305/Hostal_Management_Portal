@@ -120,6 +120,7 @@ body {
 [data-theme='dark'] .hover\:bg-gray-50:hover,
 [data-theme='dark'] .hover\:bg-gray-100:hover,
 [data-theme='dark'] .hover\:bg-gray-200:hover,
+[data-theme='dark'] .hover\:bg-slate-50:hover,
 [data-theme='dark'] .hover\:bg-slate-100:hover {
   background-color: #243244 !important;
 }
