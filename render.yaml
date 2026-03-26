@@ -28,6 +28,12 @@ services:
         sync: false
       - key: DB_CONNECT_TIMEOUT
         sync: false
+      - key: SEED_IMPORT_ENABLED
+        sync: false
+      - key: SEED_IMPORT_IF_EMPTY_ONLY
+        sync: false
+      - key: SEED_IMPORT_FORCE
+        sync: false
       - key: JWT_SECRET
         sync: false
       - key: FRONTEND_URL

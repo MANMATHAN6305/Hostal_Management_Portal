@@ -1,9 +1,12 @@
 /**
  * Import local data into the connected database.
  * Safe defaults:
+ * - Disabled in production unless SEED_IMPORT_ENABLED=true.
  * - Imports only when DB is empty.
  * - Set SEED_IMPORT_FORCE=true to re-import and reset tables.
  */
+require('dotenv').config();
+
 console.log('=== IMPORT SCRIPT STARTED ===');
 console.log('CWD:', process.cwd());
 console.log('__dirname:', __dirname);
@@ -11,7 +14,6 @@ console.log('DB_HOST:', process.env.DB_HOST);
 console.log('DB_PORT:', process.env.DB_PORT);
 console.log('DB_NAME:', process.env.DB_NAME);
 
-require('dotenv').config();
 const { sequelize } = require('../config/database');
 const fs = require('fs');
 const path = require('path');
@@ -36,6 +38,12 @@ const TABLE_MAP = {
 
 const TABLES_IN_ORDER = Object.keys(TABLE_MAP);
 const MYSQL_TABLES = Object.values(TABLE_MAP);
+
+const IMPORT_ENABLED =
+  String(
+    process.env.SEED_IMPORT_ENABLED ??
+      (process.env.NODE_ENV === 'production' ? 'false' : 'true')
+  ).toLowerCase() === 'true';
 
 const FORCE_IMPORT = String(process.env.SEED_IMPORT_FORCE || 'false').toLowerCase() === 'true';
 const IMPORT_IF_EMPTY_ONLY =
@@ -70,6 +78,11 @@ async function getNonEmptyTables(conn) {
 }
 
 async function importData() {
+  if (!IMPORT_ENABLED) {
+    console.log('Import skipped: SEED_IMPORT_ENABLED is false.');
+    return;
+  }
+
   const dataPath = path.join(__dirname, 'localData.json');
   if (!fs.existsSync(dataPath)) {
     console.error('localData.json not found');
