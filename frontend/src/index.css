@@ -204,6 +204,57 @@ body {
   color: rgb(185 28 28) !important;
 }
 
+/* Soften hover background intensity globally across pages and roles */
+.hover\:bg-gray-700:hover {
+  background-color: rgb(75 85 99) !important;
+}
+
+.hover\:bg-gray-600:hover {
+  background-color: rgb(107 114 128) !important;
+}
+
+.hover\:bg-gray-300:hover {
+  background-color: rgb(229 231 235) !important;
+}
+
+.hover\:bg-gray-200:hover {
+  background-color: rgb(243 244 246) !important;
+}
+
+.hover\:bg-gray-100:hover,
+.hover\:bg-slate-100:hover {
+  background-color: rgb(249 250 251) !important;
+}
+
+.hover\:bg-blue-700:hover {
+  background-color: rgb(37 99 235) !important;
+}
+
+.hover\:bg-emerald-700:hover,
+.hover\:bg-green-700:hover {
+  background-color: rgb(5 150 105) !important;
+}
+
+.hover\:bg-red-700:hover {
+  background-color: rgb(220 38 38) !important;
+}
+
+.hover\:bg-yellow-600:hover {
+  background-color: rgb(234 179 8) !important;
+}
+
+.hover\:bg-orange-700:hover {
+  background-color: rgb(234 88 12) !important;
+}
+
+.hover\:bg-slate-800:hover {
+  background-color: rgb(51 65 85) !important;
+}
+
+.hover\:bg-slate-600:hover {
+  background-color: rgb(100 116 139) !important;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
