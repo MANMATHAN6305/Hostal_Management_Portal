@@ -109,7 +109,7 @@ async function importData() {
           .join(', ')}`
       );
       console.log('Set SEED_IMPORT_FORCE=true to re-import and reset tables.');
-      await conn.end();a
+      await conn.end();
       return;
     }
   }
