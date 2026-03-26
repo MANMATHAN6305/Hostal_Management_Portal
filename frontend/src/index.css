@@ -38,6 +38,7 @@ body {
 
 /* Global dark theme support for existing Tailwind utility classes used across pages */
 [data-theme='dark'] .bg-white,
+[data-theme='dark'] .bg-slate-50,
 [data-theme='dark'] .bg-gray-50,
 [data-theme='dark'] .bg-gray-100,
 [data-theme='dark'] .bg-slate-100 {
@@ -76,6 +77,13 @@ body {
 [data-theme='dark'] .bg-green-50\/80,
 [data-theme='dark'] .bg-green-50\/90 {
   background-color: #0f2e1f !important;
+}
+
+[data-theme='dark'] .bg-emerald-50,
+[data-theme='dark'] .bg-emerald-50\/80,
+[data-theme='dark'] .bg-emerald-50\/90,
+[data-theme='dark'] .bg-emerald-100 {
+  background-color: #113226 !important;
 }
 
 [data-theme='dark'] .bg-white\/70,
@@ -139,6 +147,12 @@ body {
 [data-theme='dark'] .text-yellow-700,
 [data-theme='dark'] .text-red-700 {
   color: #93c5fd !important;
+}
+
+[data-theme='dark'] .text-emerald-600,
+[data-theme='dark'] .text-emerald-700,
+[data-theme='dark'] .text-emerald-800 {
+  color: #6ee7b7 !important;
 }
 
 [data-theme='dark'] h1:not([class*='text-']),
