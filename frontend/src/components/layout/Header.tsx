@@ -68,11 +68,12 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'ADMIN': return 'bg-red-100 text-red-700';
-      case 'WARDEN': return 'bg-blue-100 text-blue-700';
-      case 'STAFF': return 'bg-yellow-100 text-yellow-700';
-      case 'STUDENT': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'ADMIN':
+      case 'WARDEN':
+      case 'STAFF':
+      case 'STUDENT':
+      default:
+        return 'bg-[var(--surface-muted)] text-[var(--foreground)] border border-[var(--border)]';
     }
   };
 
@@ -190,21 +191,21 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className={`shadow-sm border-b h-16 flex items-center justify-between px-4 md:px-6 transition-colors ${
-      isDarkTheme ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'
+    <header className={`border-b h-16 flex items-center justify-between px-4 md:px-6 transition-colors ${
+      isDarkTheme ? 'bg-[var(--surface)] border-[var(--border)]' : 'bg-[var(--surface)] border-[var(--border)]'
     }`}>
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
-          className={`lg:hidden p-2 rounded-lg transition-colors ${
-            isDarkTheme ? 'hover:bg-slate-800' : 'hover:bg-gray-100'
+          className={`lg:hidden p-2 rounded-md transition-colors ${
+            isDarkTheme ? 'hover:bg-[var(--surface-muted)]' : 'hover:bg-[var(--surface-muted)]'
           }`}
         >
-          <svg className={`w-6 h-6 ${isDarkTheme ? 'text-slate-200' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-5 h-5 ${isDarkTheme ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <h2 className={`text-sm md:text-lg font-semibold truncate ${isDarkTheme ? 'text-slate-100' : 'text-gray-800'}`}>College Hostel Portal</h2>
+        <h2 className={`text-sm md:text-base font-semibold truncate ${isDarkTheme ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'}`}>College Hostel Portal</h2>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
@@ -212,10 +213,10 @@ export function Header({ onMenuClick }: HeaderProps) {
           <div className="relative">
             <button
               onClick={() => setShowNotifications((prev) => !prev)}
-              className={`relative p-2 rounded-full transition-colors ${isDarkTheme ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}
+              className={`relative p-2 rounded-md transition-colors ${isDarkTheme ? 'hover:bg-[var(--surface-muted)]' : 'hover:bg-[var(--surface-muted)]'}`}
               aria-label="Notifications"
             >
-              <svg className={`w-6 h-6 ${isDarkTheme ? 'text-slate-100' : 'text-gray-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-5 h-5 ${isDarkTheme ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -224,37 +225,37 @@ export function Header({ onMenuClick }: HeaderProps) {
                 />
               </svg>
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] text-[10px] font-bold flex items-center justify-center">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </button>
 
             {showNotifications && (
-              <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg shadow-lg border z-50 ${
-                isDarkTheme ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'
+              <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-md border z-50 ${
+                isDarkTheme ? 'bg-[var(--surface)] border-[var(--border)]' : 'bg-[var(--surface)] border-[var(--border)]'
               }`}>
-                <div className={`px-4 py-3 border-b ${isDarkTheme ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
-                  <p className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-100' : 'text-gray-800'}`}>Notifications</p>
-                  <p className={`text-xs ${isDarkTheme ? 'text-slate-300' : 'text-gray-500'}`}>Unread: {unreadCount}</p>
+                <div className={`px-4 py-3 border-b ${isDarkTheme ? 'bg-[var(--surface-muted)] border-[var(--border)]' : 'bg-[var(--surface-muted)] border-[var(--border)]'}`}>
+                  <p className={`text-sm font-semibold ${isDarkTheme ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'}`}>Notifications</p>
+                  <p className={`text-xs ${isDarkTheme ? 'text-[var(--foreground-muted)]' : 'text-[var(--foreground-muted)]'}`}>Unread: {unreadCount}</p>
                 </div>
 
                 {visibleNotifications.length === 0 ? (
-                  <div className={`px-4 py-6 text-center text-sm ${isDarkTheme ? 'text-slate-300' : 'text-gray-500'}`}>
+                  <div className={`px-4 py-6 text-center text-sm ${isDarkTheme ? 'text-[var(--foreground-muted)]' : 'text-[var(--foreground-muted)]'}`}>
                     No new notifications.
                   </div>
                 ) : (
-                  <div className={isDarkTheme ? 'divide-y divide-slate-700' : 'divide-y divide-gray-100'}>
+                  <div className={isDarkTheme ? 'divide-y divide-[var(--border)]' : 'divide-y divide-[var(--border)]'}>
                     {visibleNotifications.map((notification) => (
                       <button
                         key={notification.id}
-                        className={`w-full text-left px-4 py-3 transition-colors ${isDarkTheme ? 'hover:bg-slate-800' : 'hover:bg-gray-50'}`}
+                        className={`w-full text-left px-4 py-3 transition-colors ${isDarkTheme ? 'hover:bg-[var(--surface-muted)]' : 'hover:bg-[var(--surface-muted)]'}`}
                         onClick={() => handleNotificationClick(notification)}
                       >
-                        <p className={`text-xs font-semibold ${isDarkTheme ? 'text-sky-300' : 'text-blue-700'}`}>{notification.category}</p>
-                        <p className={`text-sm font-medium mt-0.5 ${isDarkTheme ? 'text-slate-100' : 'text-gray-900'}`}>{notification.title}</p>
-                        <p className={`text-xs mt-1 line-clamp-2 ${isDarkTheme ? 'text-slate-300' : 'text-gray-600'}`}>{notification.description || 'No additional details'}</p>
-                        <p className={`text-[11px] mt-1 ${isDarkTheme ? 'text-slate-400' : 'text-gray-400'}`}>{formatNotificationTime(notification.createdAt)}</p>
+                        <p className={`text-xs font-semibold ${isDarkTheme ? 'text-[var(--foreground-muted)]' : 'text-[var(--foreground-muted)]'}`}>{notification.category}</p>
+                        <p className={`text-sm font-medium mt-0.5 ${isDarkTheme ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'}`}>{notification.title}</p>
+                        <p className={`text-xs mt-1 line-clamp-2 ${isDarkTheme ? 'text-[var(--foreground-muted)]' : 'text-[var(--foreground-muted)]'}`}>{notification.description || 'No additional details'}</p>
+                        <p className={`text-[11px] mt-1 ${isDarkTheme ? 'text-[var(--foreground-muted)]' : 'text-[var(--foreground-muted)]'}`}>{formatNotificationTime(notification.createdAt)}</p>
                       </button>
                     ))}
                   </div>
@@ -266,10 +267,10 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         <button
           onClick={toggleTheme}
-          className={`p-2 rounded-full border transition-colors ${
+          className={`p-2 rounded-md border transition-colors ${
             isDarkTheme
-              ? 'border-slate-600 text-amber-300 hover:bg-slate-800'
-              : 'border-gray-300 text-slate-700 hover:bg-gray-100'
+              ? 'border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--surface-muted)]'
+              : 'border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--surface-muted)]'
           }`}
           title={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -288,45 +289,45 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         <div className="text-right hidden sm:block">
           <div className="flex items-center gap-2">
-            <p className={`text-sm font-medium ${isDarkTheme ? 'text-slate-100' : 'text-gray-800'}`}>{userName}</p>
+            <p className={`text-sm font-medium ${isDarkTheme ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'}`}>{userName}</p>
             {userRole && (
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadgeColor(userRole)}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${getRoleBadgeColor(userRole)}`}>
                 {userRole}
               </span>
             )}
           </div>
-          {userEmail && <p className={`text-xs ${isDarkTheme ? 'text-slate-300' : 'text-gray-500'}`}>{userEmail}</p>}
+          {userEmail && <p className={`text-xs ${isDarkTheme ? 'text-[var(--foreground-muted)]' : 'text-[var(--foreground-muted)]'}`}>{userEmail}</p>}
         </div>
 
         <div className="relative group">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-colors ${
-            isDarkTheme ? 'bg-slate-700 hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'
+          <div className={`w-10 h-10 rounded-md border border-[var(--border)] flex items-center justify-center cursor-pointer transition-colors ${
+            isDarkTheme ? 'bg-[var(--surface-muted)] hover:bg-[var(--surface-subtle)]' : 'bg-[var(--surface-muted)] hover:bg-[var(--surface-subtle)]'
           }`}>
-            <span className={`text-sm font-medium ${isDarkTheme ? 'text-slate-100' : 'text-gray-700'}`}>{userName.charAt(0).toUpperCase()}</span>
+            <span className={`text-sm font-medium ${isDarkTheme ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'}`}>{userName.charAt(0).toUpperCase()}</span>
           </div>
-          <div className={`absolute right-0 mt-2 w-56 rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 ${
-            isDarkTheme ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'
+          <div className={`absolute right-0 mt-2 w-56 rounded-md border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 ${
+            isDarkTheme ? 'bg-[var(--surface)] border-[var(--border)]' : 'bg-[var(--surface)] border-[var(--border)]'
           }`}>
             <div className="py-2">
-              <Link to="/dashboard" className={`block px-4 py-2 text-sm ${isDarkTheme ? 'text-slate-100 hover:bg-slate-800' : 'text-gray-700 hover:bg-gray-100'}`}>
+              <Link to="/dashboard" className={`block px-4 py-2 text-sm ${isDarkTheme ? 'text-[var(--foreground)] hover:bg-[var(--surface-muted)]' : 'text-[var(--foreground)] hover:bg-[var(--surface-muted)]'}`}>
                 Dashboard
               </Link>
               <button
                 onClick={toggleTheme}
                 className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
-                  isDarkTheme ? 'text-slate-100 hover:bg-slate-800' : 'text-gray-700 hover:bg-gray-100'
+                  isDarkTheme ? 'text-[var(--foreground)] hover:bg-[var(--surface-muted)]' : 'text-[var(--foreground)] hover:bg-[var(--surface-muted)]'
                 }`}
               >
                 <span>Theme</span>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  isDarkTheme ? 'bg-slate-700 text-slate-100' : 'bg-gray-100 text-gray-700'
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-md border border-[var(--border)] ${
+                  isDarkTheme ? 'bg-[var(--surface-muted)] text-[var(--foreground)]' : 'bg-[var(--surface-muted)] text-[var(--foreground)]'
                 }`}>
                   {isDarkTheme ? 'Dark' : 'Light'}
                 </span>
               </button>
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                className="w-full text-left px-4 py-2 text-sm text-[var(--foreground-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
               >
                 Logout
               </button>

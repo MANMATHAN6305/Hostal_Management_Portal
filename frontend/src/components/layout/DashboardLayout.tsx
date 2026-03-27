@@ -23,11 +23,11 @@ export default function DashboardLayout() {
   }, [navigate, location.pathname]);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/20 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -42,7 +42,7 @@ export default function DashboardLayout() {
       {/* Main content with left margin for sidebar on desktop */}
       <div className="lg:ml-64 flex flex-col min-h-screen">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-4 md:p-8 overflow-auto">
           <Outlet />
         </main>
       </div>

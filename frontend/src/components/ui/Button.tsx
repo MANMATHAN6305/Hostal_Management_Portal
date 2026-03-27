@@ -6,18 +6,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md',
-  secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-900 shadow-sm hover:shadow-md',
-  danger: 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md',
-  success: 'bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md',
-  outline: 'bg-transparent border-2 border-blue-600 text-blue-600 hover:bg-blue-50',
-  ghost: 'bg-transparent text-gray-700 hover:bg-gray-100',
+  primary: 'border border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-95',
+  secondary: 'border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--surface-muted)]',
+  danger: 'border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--surface-muted)]',
+  success: 'border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--surface-muted)]',
+  outline: 'border border-[var(--border)] bg-transparent text-[var(--foreground)] hover:bg-[var(--surface-muted)]',
+  ghost: 'border border-transparent bg-transparent text-[var(--foreground)] hover:bg-[var(--surface-muted)]',
 };
 
 const sizes = {
   sm: 'px-3 py-1.5 text-sm',
   md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-3 text-base',
+  lg: 'px-6 py-2.5 text-base',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -25,7 +25,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={`inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+        className={`inline-flex items-center justify-center rounded-md font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
         {...props}
       >
         {children}

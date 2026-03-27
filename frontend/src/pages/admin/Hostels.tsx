@@ -16,8 +16,20 @@ interface HostelForm {
   totalRooms: number;
 }
 
+interface HostelItem {
+  id: number;
+  name: string;
+  gender: 'MALE' | 'FEMALE';
+  totalRooms: number;
+  actualRoomCount?: number;
+  blockCode?: string;
+  blockName?: string;
+  code?: string;
+  warden?: { fullName?: string } | null;
+}
+
 export default function AdminHostels() {
-  const [hostels, setHostels] = useState<any[]>([]);
+  const [hostels, setHostels] = useState<HostelItem[]>([]);
   const [form, setForm] = useState<HostelForm>({ name: '', gender: 'MALE', totalRooms: 0 });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showEditModal, setShowEditModal] = useState(false);
@@ -279,141 +291,29 @@ export default function AdminHostels() {
 
       {/* Hostels List */}
       <div className="space-y-8">
-        {/* Male Hostels */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4 text-blue-700 flex items-center gap-2">
-            <span>🏢</span> Boys Hostels ({maleHostels.length})
-          </h2>
-          {maleHostels.length === 0 ? (
-            <Card>
-              <CardContent className="text-center text-gray-500 py-8">
-                No boys hostels found. Add one to get started.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {maleHostels.map((hostel) => (
-                <Card key={hostel.id} className="hover:shadow-lg transition border-l-4 border-l-blue-500">
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-blue-600">{hostel.name}</h3>
-                      <p className="text-sm text-gray-600 mt-2">
-                        <span className="font-medium">Type:</span> {getGenderDisplay(hostel.gender)}
-                      </p>
-                      <div className="mt-2 space-y-1">
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Target Capacity:</span> {hostel.totalRooms} rooms
-                        </p>
-                        <p className="text-sm text-gray-700 font-semibold">
-                          <span className="font-medium">Actual Rooms:</span> {hostel.actualRoomCount || 0} rooms
-                        </p>
-                        {hostel.actualRoomCount < hostel.totalRooms && (
-                          <p className="text-xs text-orange-600">
-                            ⚠️ {hostel.totalRooms - (hostel.actualRoomCount || 0)} rooms short of target
-                          </p>
-                        )}
-                      </div>
-                      {hostel.warden ? (
-                        <p className="text-sm text-green-600 mt-2">
-                          ✅ Warden: {hostel.warden.fullName}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-orange-600 mt-2">
-                          ⚠️ No Warden Assigned
-                        </p>
-                      )}
-                    </div>
+        <HostelGridSection
+          title="Boys Hostels"
+          count={maleHostels.length}
+          accentClass="bg-blue-500"
+          hostels={maleHostels}
+          emptyText="No boys hostels found. Add one to get started."
+          loading={loading}
+          onEdit={handleEditHostel}
+          onDelete={(id) => setDeleteConfirm(id)}
+          getGenderDisplay={getGenderDisplay}
+        />
 
-                    <div className="flex gap-2 pt-2 border-t">
-                      <Button
-                        onClick={() => handleEditHostel(hostel)}
-                        disabled={loading}
-                        className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-sm"
-                      >
-                        ✏️ Edit
-                      </Button>
-                      <Button
-                        onClick={() => setDeleteConfirm(hostel.id)}
-                        disabled={loading}
-                        className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm"
-                      >
-                        🗑️ Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Female Hostels */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4 text-pink-700 flex items-center gap-2">
-            <span>🏢</span> Girls Hostels ({femaleHostels.length})
-          </h2>
-          {femaleHostels.length === 0 ? (
-            <Card>
-              <CardContent className="text-center text-gray-500 py-8">
-                No girls hostels found. Add one to get started.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {femaleHostels.map((hostel) => (
-                <Card key={hostel.id} className="hover:shadow-lg transition border-l-4 border-l-pink-500">
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-pink-600">{hostel.name}</h3>
-                      <p className="text-sm text-gray-600 mt-2">
-                        <span className="font-medium">Type:</span> {getGenderDisplay(hostel.gender)}
-                      </p>
-                      <div className="mt-2 space-y-1">
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Target Capacity:</span> {hostel.totalRooms} rooms
-                        </p>
-                        <p className="text-sm text-gray-700 font-semibold">
-                          <span className="font-medium">Actual Rooms:</span> {hostel.actualRoomCount || 0} rooms
-                        </p>
-                        {hostel.actualRoomCount < hostel.totalRooms && (
-                          <p className="text-xs text-orange-600">
-                            ⚠️ {hostel.totalRooms - (hostel.actualRoomCount || 0)} rooms short of target
-                          </p>
-                        )}
-                      </div>
-                      {hostel.warden ? (
-                        <p className="text-sm text-green-600 mt-2">
-                          ✅ Warden: {hostel.warden.fullName}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-orange-600 mt-2">
-                          ⚠️ No Warden Assigned
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2 pt-2 border-t">
-                      <Button
-                        onClick={() => handleEditHostel(hostel)}
-                        disabled={loading}
-                        className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-sm"
-                      >
-                        ✏️ Edit
-                      </Button>
-                      <Button
-                        onClick={() => setDeleteConfirm(hostel.id)}
-                        disabled={loading}
-                        className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm"
-                      >
-                        🗑️ Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+        <HostelGridSection
+          title="Girls Hostels"
+          count={femaleHostels.length}
+          accentClass="bg-pink-500"
+          hostels={femaleHostels}
+          emptyText="No girls hostels found. Add one to get started."
+          loading={loading}
+          onEdit={handleEditHostel}
+          onDelete={(id) => setDeleteConfirm(id)}
+          getGenderDisplay={getGenderDisplay}
+        />
       </div>
 
       {/* Edit Modal */}
@@ -515,5 +415,116 @@ export default function AdminHostels() {
         </div>
       )}
     </div>
+  );
+}
+
+function getHostelBlockLabel(hostel: HostelItem) {
+  return hostel.blockCode || hostel.blockName || hostel.code || 'Main Block';
+}
+
+interface HostelGridSectionProps {
+  title: string;
+  count: number;
+  accentClass: string;
+  hostels: HostelItem[];
+  emptyText: string;
+  loading: boolean;
+  onEdit: (hostel: HostelItem) => void;
+  onDelete: (id: number) => void;
+  getGenderDisplay: (gender: string) => string;
+}
+
+function HostelGridSection({
+  title,
+  count,
+  accentClass,
+  hostels,
+  emptyText,
+  loading,
+  onEdit,
+  onDelete,
+  getGenderDisplay,
+}: HostelGridSectionProps) {
+  return (
+    <section className="space-y-3">
+      <h2 className="inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--foreground)]">
+        <span className={`h-3 w-3 rounded-full ${accentClass}`} />
+        <span>{title} ({count})</span>
+      </h2>
+
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
+        {hostels.length === 0 ? (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-8 text-center text-sm text-[var(--foreground-muted)]">
+            {emptyText}
+          </div>
+        ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,240px))] justify-start gap-4">
+            {hostels.map((hostel) => {
+              const actualRooms = hostel.actualRoomCount || 0;
+              const roomDelta = hostel.totalRooms - actualRooms;
+
+              return (
+                <article
+                  key={hostel.id}
+                  className="flex h-[272px] w-[240px] flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_10px_24px_rgba(15,23,42,0.12)] transition-transform hover:-translate-y-0.5"
+                >
+                  <div className="flex min-h-0 flex-1 flex-col gap-2">
+                    <div className="space-y-1">
+                      <p className="truncate text-[15px] font-bold leading-5 text-[var(--foreground)]" title={hostel.name}>
+                        {hostel.name}
+                      </p>
+                      <p className="truncate text-xs font-semibold text-[var(--foreground-muted)]">
+                        {getHostelBlockLabel(hostel)}
+                      </p>
+                      <p className="text-xs text-[var(--foreground-muted)]">{getGenderDisplay(hostel.gender)}</p>
+                    </div>
+
+                    <div className="space-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-2 text-xs">
+                      <p className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-[var(--foreground-muted)]">Target</span>
+                        <span className="font-semibold text-[var(--foreground)]">{hostel.totalRooms}</span>
+                      </p>
+                      <p className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-[var(--foreground-muted)]">Actual</span>
+                        <span className="font-semibold text-[var(--foreground)]">{actualRooms}</span>
+                      </p>
+                      <p className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-[var(--foreground-muted)]">Status</span>
+                        <span className={roomDelta > 0 ? 'text-orange-600 font-semibold' : 'text-emerald-600 font-semibold'}>
+                          {roomDelta > 0 ? `${roomDelta} short` : 'On target'}
+                        </span>
+                      </p>
+                      <p className="truncate">
+                        <span className="font-semibold text-[var(--foreground-muted)]">Warden:</span>{' '}
+                        <span className={hostel.warden?.fullName ? 'text-emerald-600 font-semibold' : 'text-orange-600 font-semibold'}>
+                          {hostel.warden?.fullName || 'Not assigned'}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto grid grid-cols-2 gap-2 pt-2">
+                    <Button
+                      onClick={() => onEdit(hostel)}
+                      disabled={loading}
+                      className="h-9 rounded-xl bg-blue-600 px-2 text-xs font-semibold text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.3)] hover:bg-blue-700"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => onDelete(hostel.id)}
+                      disabled={loading}
+                      className="h-9 rounded-xl bg-rose-600 px-2 text-xs font-semibold text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.3)] hover:bg-rose-700"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

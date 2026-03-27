@@ -123,51 +123,34 @@ export default function Login() {
   };
 
   const fieldClass =
-    'w-full h-14 rounded-lg border border-white/75 bg-white/92 px-4 text-base text-gray-900 placeholder:text-gray-500 focus:border-white focus:outline-none focus:ring-2 focus:ring-white/80 appearance-none';
+    'w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]';
 
   return (
-    <div className="min-h-screen flex items-center">
-      <div
-        className="relative mx-auto w-screen min-h-screen overflow-y-auto border-2 border-white/80 shadow-[0_18px_48px_rgba(0,0,0,0.5)]"
-        style={{
-          backgroundImage: 'url(/bit-login-bg.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="absolute inset-0 bg-black/15"/>
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <section className="hidden lg:block pr-8">
+          <p className="text-xs font-medium tracking-[0.14em] uppercase text-[var(--foreground-muted)]">BIT Hostel Portal</p>
+          <h1 className="mt-4 text-4xl font-semibold leading-tight">Simple and focused hostel management.</h1>
+          <p className="mt-4 text-sm text-[var(--foreground-muted)] max-w-md">
+            Sign in to continue to your dashboard, manage allocations, and stay updated with hostel operations.
+          </p>
+        </section>
 
-        <div className="relative min-h-screen">
-          <div className="px-7 pt-16 sm:px-12 md:pt-20 lg:pt-0 lg:absolute lg:left-[7%] lg:top-1/2 lg:-translate-y-1/2">
-            <h1
-              className="text-white text-7xl sm:text-8xl leading-tight"
-              style={{ fontFamily: "'Dancing Script', 'Brush Script MT', cursive" }}
-            >
-              Welcome to Our
-            </h1>
-            <h2
-              className="mt-2 text-white text-7xl sm:text-8xl leading-none"
-              style={{ fontFamily: "'Dancing Script', 'Brush Script MT', cursive" }}
-            >
-              BIT Hostels
-            </h2>
+        <section className="minimal-panel w-full max-w-md mx-auto p-6 sm:p-7">
+          <div className="mb-6 text-left">
+            <h2 className="text-2xl font-semibold">Sign In</h2>
+            <p className="mt-1 text-sm text-[var(--foreground-muted)]">Access your hostel portal account.</p>
           </div>
 
-          <div className="mx-4 mt-10 rounded-[20px] border-2 border-white/70 bg-white/34 p-6 backdrop-blur-[3px] sm:mx-8 sm:p-8 lg:absolute lg:bottom-8 lg:right-8 lg:top-8 lg:mt-0 lg:w-[38%] lg:min-w-[360px] lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto lg:p-9">
-            <div className="mb-3 text-center">
-              <h3 className="text-3xl font-semibold text-white drop-shadow">Sign In</h3>
-              <p className="mt-2 text-sm text-white/95">Access your hostel portal</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-medium">
+              <div className="border border-red-300/70 bg-red-50/60 text-red-700 px-3 py-2 rounded-md text-sm">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-white mb-2">
+              <label htmlFor="email" className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
                 Email Address
               </label>
               <input
@@ -177,14 +160,13 @@ export default function Login() {
                 value={formData.email}
                 onChange={handleChange}
                 className={fieldClass}
-                style={{ lineHeight: '3.5rem' }}
                 placeholder="your@email.com"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-white mb-2">
+              <label htmlFor="password" className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
                 Password
               </label>
               <input
@@ -194,30 +176,29 @@ export default function Login() {
                 value={formData.password}
                 onChange={handleChange}
                 className={fieldClass}
-                style={{ lineHeight: '3.5rem' }}
                 placeholder="••••••••"
                 required
               />
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex items-center">
+              <label className="flex items-center text-sm text-[var(--foreground-muted)]">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-white/70 bg-white/80 text-gray-900 focus:ring-2"
+                  className="h-4 w-4 rounded border-[var(--border)] bg-[var(--surface)]"
                 />
-                <span className="ml-2 text-sm text-white">Remember me</span>
+                <span className="ml-2">Remember me</span>
               </label>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-[#1f2f3a] px-4 py-3 font-semibold text-white transition-all hover:bg-[#16232c] focus:outline-none focus:ring-2 focus:ring-white/80 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-md border border-[var(--primary)] bg-[var(--primary)] px-4 py-2.5 text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -230,17 +211,17 @@ export default function Login() {
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/65"></div>
+                <div className="w-full border-t border-[var(--border)]"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 text-white">Or continue with</span>
+                <span className="px-2 bg-[var(--surface)] text-[var(--foreground-muted)]">Or continue with</span>
               </div>
             </div>
 
             <button
               type="button"
               onClick={handleGoogleSignIn}
-                            className="w-full flex items-center justify-center gap-3 rounded-lg border border-white/70 bg-white/92 px-4 py-3 font-medium text-white-800 transition-colors hover:bg-white/50"
+              className="w-full flex items-center justify-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-muted)]"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -252,14 +233,13 @@ export default function Login() {
             </button>
           </form>
 
-            <p className="mt-6 text-center text-white">
+          <p className="mt-6 text-center text-sm text-[var(--foreground-muted)]">
             Don't have an account?{' '}
-            <Link to="/register" className="font-semibold text-[#d0dceb] underline-offset-2 hover:underline">
+            <Link to="/register" className="font-medium text-[var(--foreground)] underline-offset-2 hover:underline">
               Register here
             </Link>
           </p>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );

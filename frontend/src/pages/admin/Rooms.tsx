@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { roomsApi, adminApi } from '@/lib/api';
-import type { Room } from '@/types';
+import type { Room, RoomStatus } from '@/types';
 import {
   defaultCapacityLabel,
   defaultRoomTypeLabel,
@@ -103,14 +103,33 @@ const formatRoomType = (type: string) => {
 export default function Rooms() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [hostels, setHostels] = useState<Hostel[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [genderFilter, setGenderFilter] = useState('ALL');
   const [hostelFilter, setHostelFilter] = useState('ALL');
+  const [bedsFilter, setBedsFilter] = useState('ALL');
+  const [occupiedBedsFilter, setOccupiedBedsFilter] = useState('ALL');
   const defaultMaleBlocks = useMemo(() => getBlocksByGender('MALE'), []);
   const defaultFemaleBlocks = useMemo(() => getBlocksByGender('FEMALE'), []);
+
+  const bedOptions = useMemo(() => {
+    const values = new Set<number>();
+    rooms.forEach((room) => values.add(getCapacityFromRoom(room)));
+    return Array.from(values).sort((a, b) => a - b);
+  }, [rooms]);
+
+  const occupiedBedOptions = useMemo(() => {
+    const values = new Set<number>();
+    rooms.forEach((room) => {
+      const capacity = getCapacityFromRoom(room);
+      const occupiedBeds = Math.max(0, Math.min(capacity, Number(room.occupied || 0)));
+      values.add(occupiedBeds);
+    });
+    return Array.from(values).sort((a, b) => a - b);
+  }, [rooms]);
 
   const hostelOptions = useMemo(() => {
     return hostels
@@ -169,6 +188,20 @@ export default function Rooms() {
     if (statusFilter !== 'ALL') {
       filtered = filtered.filter(room => room.status === statusFilter);
     }
+
+    // Apply total beds filter
+    if (bedsFilter !== 'ALL') {
+      filtered = filtered.filter((room) => getCapacityFromRoom(room) === Number(bedsFilter));
+    }
+
+    // Apply occupied beds filter
+    if (occupiedBedsFilter !== 'ALL') {
+      filtered = filtered.filter((room) => {
+        const capacity = getCapacityFromRoom(room);
+        const occupiedBeds = Math.max(0, Math.min(capacity, Number(room.occupied || 0)));
+        return occupiedBeds === Number(occupiedBedsFilter);
+      });
+    }
     
     // Apply search filter
     if (searchQuery.trim() !== '') {
@@ -194,7 +227,7 @@ export default function Rooms() {
     });
     
     setFilteredRooms(filtered);
-  }, [searchQuery, statusFilter, genderFilter, hostelFilter, rooms]);
+  }, [searchQuery, statusFilter, genderFilter, hostelFilter, bedsFilter, occupiedBedsFilter, rooms]);
 
   // Get hostels based on gender filter
   const getHostelOptions = () => {
@@ -203,15 +236,36 @@ export default function Rooms() {
 
   const fetchRoomsAndHostels = async () => {
     try {
-      const [roomsData, hostelsData] = await Promise.all([
+      const [roomsResult, hostelsResult] = await Promise.allSettled([
         roomsApi.getAll(),
         adminApi.getHostels()
       ]);
-      const roomArray = Array.isArray(roomsData) ? roomsData : [];
-      const hostelArray = hostelsData.hostels || [];
+
+      const roomPayload = roomsResult.status === 'fulfilled' ? roomsResult.value : null;
+      const hostelsPayload = hostelsResult.status === 'fulfilled' ? hostelsResult.value : null;
+
+      const roomArray = Array.isArray(roomPayload)
+        ? roomPayload
+        : Array.isArray((roomPayload as any)?.rooms)
+          ? (roomPayload as any).rooms
+          : [];
+
+      const hostelArray = Array.isArray((hostelsPayload as any)?.hostels)
+        ? (hostelsPayload as any).hostels
+        : Array.isArray(hostelsPayload)
+          ? hostelsPayload
+          : [];
+
       setRooms(roomArray);
       setFilteredRooms(roomArray);
       setHostels(hostelArray);
+
+      if (roomsResult.status === 'rejected' || hostelsResult.status === 'rejected') {
+        console.error('Rooms/hostels fetch partially failed:', {
+          rooms: roomsResult.status === 'rejected' ? roomsResult.reason : null,
+          hostels: hostelsResult.status === 'rejected' ? hostelsResult.reason : null
+        });
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -231,6 +285,18 @@ export default function Rooms() {
     }
   };
 
+  const roomTooltip = (room: Room) => {
+    const capacity = getCapacityFromRoom(room);
+    const occupiedBeds = Math.max(0, Math.min(capacity, Number(room.occupied || 0)));
+    return [
+      `Room ${room.roomNumber}`,
+      `${room.blockName} | Floor ${room.floorNumber}`,
+      `${formatRoomType(room.roomType)}`,
+      `Beds: ${occupiedBeds}/${capacity}`,
+      `Status: ${room.status}`
+    ].join(' | ');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -238,125 +304,20 @@ export default function Rooms() {
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Hostel Rooms</h1>
-          <p className="text-gray-600">Manage hostel rooms and their availability</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Hostel Rooms</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage hostel rooms and their availability</p>
         </div>
         <Link to="/rooms/add">
           <Button>+ Add Room</Button>
         </Link>
       </div>
 
-      <Card>
-        <CardContent className="py-5 space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800">Default Room Structure</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Reference block-wise room distribution from the provided hostel master details.
-            </p>
-          </div>
-
-          <div className="space-y-5">
-            <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
-                <h3 className="text-sm md:text-base font-semibold text-blue-900">Men&apos;s Hostel Blocks</h3>
-                <p className="text-xs md:text-sm text-blue-800">
-                  {defaultCapacityLabel.MALE.blocks} blocks | {defaultCapacityLabel.MALE.rooms} rooms | {defaultCapacityLabel.MALE.members} members
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-sm">
-                  <thead>
-                    <tr className="text-left text-blue-900 border-b border-blue-200">
-                      <th className="py-2 pr-4 font-semibold">Block</th>
-                      {defaultRoomTypeOrder.map((roomType) => (
-                        <th key={`male-header-${roomType}`} className="py-2 px-2 font-semibold text-right">
-                          {defaultRoomTypeLabel[roomType]}
-                        </th>
-                      ))}
-                      <th className="py-2 pl-3 font-semibold text-right">Total Rooms</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {defaultMaleBlocks.map((block) => (
-                      <tr key={`male-${block.name}`} className="border-b border-blue-100 last:border-b-0">
-                        <td className="py-2 pr-4 font-medium text-gray-800">{block.name}</td>
-                        {defaultRoomTypeOrder.map((roomType) => {
-                          const count = getRoomCountForType(block, roomType);
-                          return (
-                            <td key={`male-${block.name}-${roomType}`} className="py-2 px-2 text-right text-gray-700">
-                              {count > 0 ? count : '-'}
-                            </td>
-                          );
-                        })}
-                        <td className="py-2 pl-3 text-right font-semibold text-gray-900">{getTotalRoomsInBlock(block)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-pink-200 bg-pink-50/30 p-4">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
-                <h3 className="text-sm md:text-base font-semibold text-pink-900">Women&apos;s Hostel Blocks</h3>
-                <p className="text-xs md:text-sm text-pink-800">
-                  {defaultCapacityLabel.FEMALE.blocks} blocks | {defaultCapacityLabel.FEMALE.rooms} rooms | {defaultCapacityLabel.FEMALE.members} members
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-sm">
-                  <thead>
-                    <tr className="text-left text-pink-900 border-b border-pink-200">
-                      <th className="py-2 pr-4 font-semibold">Block</th>
-                      {defaultRoomTypeOrder.map((roomType) => (
-                        <th key={`female-header-${roomType}`} className="py-2 px-2 font-semibold text-right">
-                          {defaultRoomTypeLabel[roomType]}
-                        </th>
-                      ))}
-                      <th className="py-2 pl-3 font-semibold text-right">Total Rooms</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {defaultFemaleBlocks.map((block) => (
-                      <tr key={`female-${block.name}`} className="border-b border-pink-100 last:border-b-0">
-                        <td className="py-2 pr-4 font-medium text-gray-800">{block.name}</td>
-                        {defaultRoomTypeOrder.map((roomType) => {
-                          const count = getRoomCountForType(block, roomType);
-                          return (
-                            <td key={`female-${block.name}-${roomType}`} className="py-2 px-2 text-right text-gray-700">
-                              {count > 0 ? count : '-'}
-                            </td>
-                          );
-                        })}
-                        <td className="py-2 pl-3 text-right font-semibold text-gray-900">{getTotalRoomsInBlock(block)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {defaultFemaleBlocks.some((block) => block.note) && (
-                <div className="mt-3 space-y-1">
-                  {defaultFemaleBlocks
-                    .filter((block) => block.note)
-                    .map((block) => (
-                      <p key={`female-note-${block.name}`} className="text-xs text-pink-800">
-                        <span className="font-semibold">{block.name}:</span> {block.note}
-                      </p>
-                    ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      {/* Statistics Cards - Keeping these as is for now, assuming the focus is on the room grid */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
         <Card>
           <CardContent className="py-4 text-center">
             <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
@@ -398,57 +359,88 @@ export default function Rooms() {
       {/* Search and Filter Bar */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row gap-4 items-center">
-              <div className="flex-1 w-full">
-                <Input
-                  type="text"
-                  placeholder="Search by Room Number, Hostel Name, Type, or Amenities..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="min-w-[220px] flex-1">
+              <Input
+                type="text"
+                placeholder="Search by Room Number, Hostel Name, Type, or Amenities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            <div className="flex flex-wrap gap-2 items-center">
-              <select
-                value={genderFilter}
-                onChange={(e) => { setGenderFilter(e.target.value); setHostelFilter('ALL'); }}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+            <select
+              value={genderFilter}
+              onChange={(e) => { setGenderFilter(e.target.value); setHostelFilter('ALL'); }}
+              className="w-auto min-w-[160px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+            >
+              <option value="ALL">All Hostels</option>
+              <option value="MALE">Men's Hostel</option>
+              <option value="FEMALE">Women's Hostel</option>
+            </select>
+            <select
+              value={hostelFilter}
+              onChange={(e) => setHostelFilter(e.target.value)}
+              className="w-auto min-w-[170px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+            >
+              <option value="ALL">All Blocks</option>
+              {getHostelOptions().map(hostel => (
+                <option key={hostel.id} value={String(hostel.id)}>
+                  {hostel.name} ({hostel.roomCount} rooms)
+                </option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-auto min-w-[140px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+            >
+              <option value="ALL">All Status</option>
+              <option value="AVAILABLE">Available</option>
+              <option value="OCCUPIED">Occupied</option>
+              <option value="MAINTENANCE">Maintenance</option>
+            </select>
+            <select
+              value={bedsFilter}
+              onChange={(e) => setBedsFilter(e.target.value)}
+              className="w-auto min-w-[120px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+            >
+              <option value="ALL">All Beds</option>
+              {bedOptions.map((beds) => (
+                <option key={`beds-${beds}`} value={String(beds)}>
+                  {beds} Beds
+                </option>
+              ))}
+            </select>
+            <select
+              value={occupiedBedsFilter}
+              onChange={(e) => setOccupiedBedsFilter(e.target.value)}
+              className="w-auto min-w-[160px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+            >
+              <option value="ALL">Occupied Beds</option>
+              {occupiedBedOptions.map((occupiedBeds) => (
+                <option key={`occupied-beds-${occupiedBeds}`} value={String(occupiedBeds)}>
+                  {occupiedBeds} Occupied
+                </option>
+              ))}
+            </select>
+            {(searchQuery || statusFilter !== 'ALL' || genderFilter !== 'ALL' || hostelFilter !== 'ALL' || bedsFilter !== 'ALL' || occupiedBedsFilter !== 'ALL') && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('ALL');
+                  setGenderFilter('ALL');
+                  setHostelFilter('ALL');
+                  setBedsFilter('ALL');
+                  setOccupiedBedsFilter('ALL');
+                }}
               >
-                <option value="ALL">All Hostels</option>
-                <option value="MALE">Men's Hostel</option>
-                <option value="FEMALE">Women's Hostel</option>
-              </select>
-              <select
-                value={hostelFilter}
-                onChange={(e) => setHostelFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
-              >
-                <option value="ALL">All Blocks</option>
-                {getHostelOptions().map(hostel => (
-                  <option key={hostel.id} value={String(hostel.id)}>
-                    {hostel.name} ({hostel.roomCount} rooms)
-                  </option>
-                ))}
-              </select>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
-              >
-                <option value="ALL">All Status</option>
-                <option value="AVAILABLE">Available</option>
-                <option value="OCCUPIED">Occupied</option>
-                <option value="MAINTENANCE">Maintenance</option>
-              </select>
-              {(searchQuery || statusFilter !== 'ALL' || genderFilter !== 'ALL' || hostelFilter !== 'ALL') && (
-                <Button variant="secondary" size="sm" onClick={() => { setSearchQuery(''); setStatusFilter('ALL'); setGenderFilter('ALL'); setHostelFilter('ALL'); }}>
-                  Clear Filters
-                </Button>
-              )}
-            </div>
+                Clear Filters
+              </Button>
+            )}
           </div>
-          {(searchQuery || statusFilter !== 'ALL' || genderFilter !== 'ALL' || hostelFilter !== 'ALL') && (
+          {(searchQuery || statusFilter !== 'ALL' || genderFilter !== 'ALL' || hostelFilter !== 'ALL' || bedsFilter !== 'ALL' || occupiedBedsFilter !== 'ALL') && (
             <p className="text-sm text-gray-500 mt-2">
               Showing {filteredRooms.length} of {rooms.length} rooms
             </p>
@@ -457,7 +449,7 @@ export default function Rooms() {
       </Card>
 
       {rooms.length === 0 ? (
-        <Card>
+        <Card className="bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)]">
           <CardContent className="py-12 text-center">
             <p className="text-gray-500">No rooms found. Add your first room to get started.</p>
           </CardContent>
@@ -468,81 +460,210 @@ export default function Rooms() {
             <p className="text-gray-500">No rooms match your search criteria.</p>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRooms.map((room) => (
-            <Card key={room.id}>
-              <CardContent>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Room {room.roomNumber}</h3>
-                    <p className="text-sm text-gray-600">{room.blockName} - Floor {room.floorNumber}</p>
-                    <p className="text-xs text-gray-500">{room.gender === 'FEMALE' ? "Women's Hostel" : "Men's Hostel"}</p>
-                  </div>
-                  <Badge variant={statusBadgeVariant(room.status)}>{room.status}</Badge>
-                </div>
-                <p className="text-sm text-gray-600 mb-3">{room.description || 'No description'}</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Type:</span>
-                    <span className="font-medium text-gray-800">{formatRoomType(room.roomType)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Occupancy:</span>
-                    <span className="font-medium text-gray-800">
-                      {Math.max(0, Math.min(getCapacityFromRoom(room), Number(room.occupied || 0)))}/{getCapacityFromRoom(room)} beds occupied
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Available Beds:</span>
-                    <span className="font-medium text-gray-800">
-                      {Math.max(0, getCapacityFromRoom(room) - Math.max(0, Math.min(getCapacityFromRoom(room), Number(room.occupied || 0))))}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Fee/Semester:</span>
-                    <span className="font-medium text-gray-800">₹{room.pricePerNight?.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Amenities:</span>
-                    <span className="font-medium text-gray-800 text-right max-w-[60%] truncate" title={room.amenities || 'N/A'}>{room.amenities || 'N/A'}</span>
-                  </div>
-                  {(room as any).hostel && (
-                    <div className="border-t border-gray-200 pt-2 mt-2">
-                      <div className="mb-2">
-                        <p className="text-xs text-gray-600 font-medium">Hostel Details</p>
-                        <p className="text-xs text-gray-700 font-semibold">{(room as any).hostel.name}</p>
-                      </div>
-                      {(room as any).hostel.warden ? (
-                        <p className="text-xs text-green-600">
-                          ✅ Warden: {(room as any).hostel.warden.fullName}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-orange-600">
-                          ⚠️ No Warden Assigned
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2 mt-4 pt-4 border-t">
-                  <Link to={`/rooms/edit/${room.id}`} className="flex-1">
-                    <Button variant="secondary" size="sm" className="w-full">Edit</Button>
-                  </Link>
-                  <Button 
-                    variant="danger" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleDelete(room.id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      ) : ( // Main Room Grid Card
+        <Card className="bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)]">
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+              <h2 className="text-sm font-semibold text-[var(--foreground)]">Room Seat Grid</h2>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[var(--foreground-muted)]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] px-2 py-1">
+                  <span className="h-3 w-3 rounded-sm border border-[var(--surface)] bg-blue-300 shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]" />
+                  Available
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] px-2 py-1">
+                  <span className="h-3 w-3 rounded-sm border border-[var(--surface)] bg-green-400 shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]" />
+                  Occupied
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] px-2 py-1">
+                  <span className="h-3 w-3 rounded-sm border border-[var(--surface)] bg-red-400 shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]" />
+                  Maintenance
+                </span>
+              </div>
+            </div>
+            <div className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-[var(--foreground)]">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12"> {/* Responsive density for mobile and desktop */}
+                {filteredRooms.map((room) => (
+                  <RoomCard
+                    key={room.id}
+                    room={room}
+                    onClick={() => setSelectedRoom(room)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-1" />
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setSelectedRoom(null)}>
+          <div className="w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-[var(--foreground)]" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-[var(--foreground)]">Room {selectedRoom.roomNumber}</h3>
+                <p className="text-xs text-[var(--foreground-muted)]">{selectedRoom.blockName} | Floor {selectedRoom.floorNumber}</p>
+              </div>
+              <Badge variant={statusBadgeVariant(selectedRoom.status)}>{selectedRoom.status}</Badge>
+            </div>
+
+            <div className="space-y-1 text-xs text-[var(--foreground)]">
+              <p><span className="text-[var(--foreground-muted)]">Type:</span> {formatRoomType(selectedRoom.roomType)}</p>
+              <p><span className="text-[var(--foreground-muted)]">Beds:</span> {Math.max(0, Math.min(getCapacityFromRoom(selectedRoom), Number(selectedRoom.occupied || 0)))}/{getCapacityFromRoom(selectedRoom)}</p>
+              <p><span className="text-[var(--foreground-muted)]">Fee:</span> ₹{selectedRoom.pricePerNight?.toLocaleString()}</p>
+              <p><span className="text-[var(--foreground-muted)]">Amenities:</span> {selectedRoom.amenities || 'N/A'}</p>
+              <p><span className="text-[var(--foreground-muted)]">Description:</span> {selectedRoom.description || 'N/A'}</p>
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <Link to={`/rooms/edit/${selectedRoom.id}`} className="flex-1">
+                <Button variant="secondary" size="sm" className="w-full">Edit</Button>
+              </Link>
+              <Button
+                variant="danger"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  handleDelete(selectedRoom.id);
+                  setSelectedRoom(null);
+                }}
+              >
+                Delete
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setSelectedRoom(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
+
+const RoomCard = ({ room, onClick }: { room: Room; onClick: () => void }) => {
+  const capacity = getCapacityFromRoom(room);
+  const isHighCapacity = capacity === 5 || capacity >= 8;
+
+  const getVisualSlotCount = (bedCount: number) => {
+    if (bedCount <= 1) return 1;
+    if (bedCount === 2) return 2;
+    if (bedCount === 3) return 3;
+    if (bedCount === 5) return 5;
+    if (bedCount >= 8) return 8;
+    return 4;
+  };
+
+  const getOccupiedVisualCount = (bedCount: number) => {
+    const slotCount = getVisualSlotCount(bedCount);
+
+    if (room.status === 'MAINTENANCE') return 0;
+
+    const occupiedBeds = Math.max(0, Math.min(capacity, Number(room.occupied || 0)));
+    if (occupiedBeds === 0) return 0;
+    if (occupiedBeds >= capacity) return slotCount;
+
+    return Math.max(1, Math.round((occupiedBeds / Math.max(1, capacity)) * slotCount));
+  };
+
+  const getBedToneClass = (slotIndex: number, bedCount: number) => {
+    if (room.status === 'MAINTENANCE') {
+      return 'bg-red-400';
+    }
+
+    const occupiedVisual = getOccupiedVisualCount(bedCount);
+    return slotIndex < occupiedVisual ? 'bg-green-400' : 'bg-blue-300';
+  };
+  
+  const renderBedLayout = (bedCount: number) => {
+    const bedBaseClass = 'rounded-md min-h-0 min-w-0 border-[3px] border-[var(--surface)] shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]';
+    const dividerClass = 'bg-[var(--surface)] p-2';
+    const bedClass = (slotIndex: number) => `${bedBaseClass} ${getBedToneClass(slotIndex, bedCount)}`;
+
+    if (bedCount <= 1) {
+      return (
+        <div className={`grid h-full w-full place-items-center ${dividerClass}`}>
+          <div className={`h-full w-1/2 min-w-[4.5rem] ${bedClass(0)}`} />
+        </div>
+      );
+    }
+
+    if (bedCount === 2) {
+      return (
+        <div className={`grid h-full w-full grid-cols-2 gap-2 ${dividerClass}`}>
+          <div className={`h-full w-full ${bedClass(0)}`} />
+          <div className={`h-full w-full ${bedClass(1)}`} />
+        </div>
+      );
+    }
+
+    if (bedCount === 3) {
+      return (
+        <div className={`grid h-full w-full grid-cols-2 grid-rows-2 gap-2 ${dividerClass}`}>
+          <div className={`row-span-2 h-full w-full ${bedClass(0)}`} />
+          <div className={`h-full w-full ${bedClass(1)}`} />
+          <div className={`h-full w-full ${bedClass(2)}`} />
+        </div>
+      );
+    }
+
+    if (bedCount === 5) {
+      return (
+        <div className={`grid h-full w-full grid-cols-2 grid-rows-3 gap-2 ${dividerClass}`}>
+          <div className={`h-full w-full ${bedClass(0)}`} />
+          <div className={`h-full w-full ${bedClass(1)}`} />
+          <div className={`h-full w-full ${bedClass(2)}`} />
+          <div className={`h-full w-full ${bedClass(3)}`} />
+          <div className={`col-span-2 h-full w-full ${bedClass(4)}`} />
+        </div>
+      );
+    }
+
+    if (bedCount >= 8) {
+      return (
+        <div className={`grid h-full w-full grid-cols-2 grid-rows-4 gap-2 ${dividerClass}`}>
+          <div className={`h-full w-full ${bedClass(0)}`} />
+          <div className={`h-full w-full ${bedClass(1)}`} />
+          <div className={`h-full w-full ${bedClass(2)}`} />
+          <div className={`h-full w-full ${bedClass(3)}`} />
+          <div className={`h-full w-full ${bedClass(4)}`} />
+          <div className={`h-full w-full ${bedClass(5)}`} />
+          <div className={`h-full w-full ${bedClass(6)}`} />
+          <div className={`h-full w-full ${bedClass(7)}`} />
+        </div>
+      );
+    }
+
+    return (
+      <div className={`grid h-full w-full grid-cols-2 grid-rows-2 gap-2 ${dividerClass}`}>
+        <div className={`h-full w-full ${bedClass(0)}`} />
+        <div className={`h-full w-full ${bedClass(1)}`} />
+        <div className={`h-full w-full ${bedClass(2)}`} />
+        <div className={`h-full w-full ${bedClass(3)}`} />
+      </div>
+    );
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full mx-auto flex flex-col justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-md transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_8px_16px_rgba(0,0,0,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] overflow-hidden ${isHighCapacity ? 'aspect-[1.15/1] sm:col-span-2' : 'aspect-square'}`}
+      aria-label={`Open room ${room.roomNumber}, status ${room.status}`}
+    >
+      <div className="px-2 pt-2 flex w-full justify-between items-center">
+        <div className="text-xs font-bold text-[var(--foreground)]">{room.roomNumber}</div>
+        <div className={`w-2 h-2 rounded-full ${room.status === 'AVAILABLE' ? 'bg-blue-300' : room.status === 'OCCUPIED' ? 'bg-green-400' : 'bg-red-400'}`} />
+      </div>
+      
+      <div className="flex-grow flex items-center justify-center w-full">
+        {renderBedLayout(capacity)}
+      </div>
+      
+      <div className="px-2 pb-1.5 text-[10px] font-semibold text-[var(--foreground-muted)] text-right w-full truncate">
+        {formatRoomType(room.roomType)}
+      </div>
+    </button>
+  );
+};

@@ -38,26 +38,54 @@ export default function Dashboard() {
   });
   const [recentAllocations, setRecentAllocations] = useState<any[]>([]);
 
+  const toArray = (payload: unknown, key?: string) => {
+    if (Array.isArray(payload)) return payload;
+    if (payload && typeof payload === 'object') {
+      const record = payload as Record<string, unknown>;
+      if (key && Array.isArray(record[key])) return record[key];
+      if (Array.isArray(record.data)) return record.data;
+      if (Array.isArray(record.items)) return record.items;
+      if (Array.isArray(record.results)) return record.results;
+    }
+    return [];
+  };
+
   const load = async () => {
     setLoading(true);
     try {
-      const [rooms, students, allocations] = await Promise.all([
+      const [roomsResult, studentsResult, allocationsResult] = await Promise.allSettled([
         roomsApi.getAll(),
         studentsApi.getAll(),
         allocationsApi.getAll()
       ]);
 
-      const roomsArray = Array.isArray(rooms) ? rooms : [];
-      const studentsArray = Array.isArray(students) ? students : [];
-      const allocationsArray = Array.isArray(allocations) ? allocations : [];
+      const roomsArray =
+        roomsResult.status === 'fulfilled'
+          ? (toArray(roomsResult.value, 'rooms') as Room[])
+          : [];
+      const studentsArray =
+        studentsResult.status === 'fulfilled'
+          ? toArray(studentsResult.value, 'students')
+          : [];
+      const allocationsArray =
+        allocationsResult.status === 'fulfilled'
+          ? toArray(allocationsResult.value, 'allocations')
+          : [];
 
       setStats({
         totalRooms: roomsArray.length,
         availableRooms: roomsArray.filter((r: Room) => r.status === 'AVAILABLE').length,
         totalStudents: studentsArray.length,
-        activeAllocations: allocationsArray.length
+        activeAllocations: allocationsArray.filter((a: any) => a?.status === 'ACTIVE').length
       });
       setRecentAllocations(allocationsArray.slice(0, 5));
+      if (roomsResult.status === 'rejected' || studentsResult.status === 'rejected' || allocationsResult.status === 'rejected') {
+        console.error('Dashboard data fetch partially failed:', {
+          rooms: roomsResult.status === 'rejected' ? roomsResult.reason : null,
+          students: studentsResult.status === 'rejected' ? studentsResult.reason : null,
+          allocations: allocationsResult.status === 'rejected' ? allocationsResult.reason : null
+        });
+      }
     } finally {
       setLoading(false);
     }
