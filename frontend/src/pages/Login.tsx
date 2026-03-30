@@ -26,6 +26,8 @@ export default function Login() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isSwitchEntering, setIsSwitchEntering] = useState(false);
 
   const persistSession = (session: {
     token?: string | null;
@@ -81,6 +83,19 @@ export default function Login() {
     }
   }, [searchParams, navigate]);
 
+  useEffect(() => {
+    if (sessionStorage.getItem('auth-page-switch') === '1') {
+      setIsSwitchEntering(true);
+      sessionStorage.removeItem('auth-page-switch');
+
+      const timer = window.setTimeout(() => {
+        setIsSwitchEntering(false);
+      }, 450);
+
+      return () => window.clearTimeout(timer);
+    }
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -122,123 +137,135 @@ export default function Login() {
     window.location.assign(getGoogleAuthUrl());
   };
 
-  const fieldClass =
-    'w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]';
+  const handleSwitchPage = (to: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setIsExiting(true);
+    sessionStorage.setItem('auth-page-switch', '1');
+    window.setTimeout(() => {
+      navigate(to);
+    }, 260);
+  };
+
+  const renderWelcomeLetters = (text: string) =>
+    text.split('').map((char, index) => (
+      <span
+        key={`${char}-${index}`}
+        className="login-welcome-letter"
+        style={{ animationDelay: `${index * 0.05}s` }}
+      >
+        {char === ' ' ? '\u00A0' : char}
+      </span>
+    ));
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] px-4 py-10 sm:px-6">
-      <div className="mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        <section className="hidden lg:block pr-8">
-          <p className="text-xs font-medium tracking-[0.14em] uppercase text-[var(--foreground-muted)]">BIT Hostel Portal</p>
-          <h1 className="mt-4 text-4xl font-semibold leading-tight">Simple and focused hostel management.</h1>
-          <p className="mt-4 text-sm text-[var(--foreground-muted)] max-w-md">
-            Sign in to continue to your dashboard, manage allocations, and stay updated with hostel operations.
-          </p>
-        </section>
+    <div className="login-cyber-shell min-h-screen px-4 py-8 sm:px-6 sm:py-12">
+      <div className="login-cyber-vignette" />
+      <span className="login-particle login-particle-1" aria-hidden="true" />
+      <span className="login-particle login-particle-2" aria-hidden="true" />
+      <span className="login-particle login-particle-3" aria-hidden="true" />
 
-        <section className="minimal-panel w-full max-w-md mx-auto p-6 sm:p-7">
-          <div className="mb-6 text-left">
-            <h2 className="text-2xl font-semibold">Sign In</h2>
-            <p className="mt-1 text-sm text-[var(--foreground-muted)]">Access your hostel portal account.</p>
-          </div>
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-center">
+        <section className={`auth-flat-card auth-flat-float auth-flat-enter w-full max-w-4xl ${isExiting ? 'auth-flat-switch-exit' : ''} ${isSwitchEntering ? 'auth-flat-switch-enter' : ''}`}>
+          <span className="login-neon-line login-neon-line-top" />
+          <span className="login-neon-line login-neon-line-right" />
+          <span className="login-neon-line login-neon-line-bottom" />
+          <span className="login-neon-line login-neon-line-left" />
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="border border-red-300/70 bg-red-50/60 text-red-700 px-3 py-2 rounded-md text-sm">
-                {error}
-              </div>
-            )}
+          <div className="grid grid-cols-1 gap-0 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="p-6 sm:p-8">
+              <h1 className="login-title text-3xl font-semibold">Login</h1>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={fieldClass}
-                placeholder="your@email.com"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={fieldClass}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center text-sm text-[var(--foreground-muted)]">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-[var(--border)] bg-[var(--surface)]"
-                />
-                <span className="ml-2">Remember me</span>
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-md border border-[var(--primary)] bg-[var(--primary)] px-4 py-2.5 text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Signing in...
-                </span>
-              ) : (
-                'Sign In'
+              {error && (
+                <div className="mt-4 rounded-xl border border-red-400/70 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                  {error}
+                </div>
               )}
-            </button>
 
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[var(--border)]"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-[var(--surface)] text-[var(--foreground-muted)]">Or continue with</span>
-              </div>
+              <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
+                <label className="login-input-wrap">
+                  <span className="login-input-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                      <path d="M20 21a8 8 0 0 0-16 0" />
+                      <circle cx="12" cy="8" r="4" />
+                    </svg>
+                  </span>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="login-input"
+                    placeholder="Username"
+                    required
+                  />
+                </label>
+
+                <label className="login-input-wrap">
+                  <span className="login-input-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                      <rect x="4" y="10" width="16" height="10" rx="2" />
+                      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                    </svg>
+                  </span>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="login-input"
+                    placeholder="Password"
+                    required
+                  />
+                </label>
+
+                <button type="submit" disabled={loading} className="login-submit-btn">
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.37 0 0 5.37 0 12h4z" />
+                      </svg>
+                      Logging in...
+                    </span>
+                  ) : (
+                    'Login'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="login-google-btn"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Continue with Google
+                </button>
+              </form>
+
+              <p className="mt-4 text-center text-xs text-cyan-100/80">
+                Don&apos;t have an account?{' '}
+
+                <Link to="/register" onClick={handleSwitchPage('/register')} className="font-medium text-cyan-300 hover:text-cyan-200">
+                  Register
+                </Link>
+              </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              className="w-full flex items-center justify-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-muted)]"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Sign in with Google
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-[var(--foreground-muted)]">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-medium text-[var(--foreground)] underline-offset-2 hover:underline">
-              Register here
-            </Link>
-          </p>
+            <aside className="login-welcome-panel">
+              <p className="login-kicker">Secure Access</p>
+              <h2 className="login-welcome-title">{renderWelcomeLetters('WELCOME BACK!')}</h2>
+              <p className="login-welcome-copy">
+                Enter your credentials and step into your control hub.
+              </p>
+            </aside>
+          </div>
         </section>
       </div>
     </div>

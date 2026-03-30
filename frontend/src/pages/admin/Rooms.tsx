@@ -649,7 +649,7 @@ const RoomCard = ({ room, onClick }: { room: Room; onClick: () => void }) => {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full mx-auto flex flex-col justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-md transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_8px_16px_rgba(0,0,0,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] overflow-hidden ${isHighCapacity ? 'aspect-[1.15/1] sm:col-span-2' : 'aspect-square'}`}
+      className={`group relative z-0 w-full mx-auto flex flex-col justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-md transition-all duration-300 ease-in-out transform-gpu origin-center hover:z-20 hover:-translate-y-1 hover:scale-[1.08] hover:shadow-[0_14px_28px_rgba(0,0,0,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] overflow-hidden ${isHighCapacity ? 'aspect-[1.15/1] sm:col-span-2' : 'aspect-square'}`}
       aria-label={`Open room ${room.roomNumber}, status ${room.status}`}
     >
       <div className="px-2 pt-2 flex w-full justify-between items-center">

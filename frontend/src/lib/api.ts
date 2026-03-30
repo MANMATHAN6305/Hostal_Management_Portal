@@ -108,7 +108,7 @@ const unwrap = async (promise: Promise<any>): Promise<any> => (await promise).da
 
 export const authApi = {
   login: (email: string, password: string) => unwrap(api.post('/auth/login', { email, password })),
-  register: (data: { fullName: string; email: string; password: string; role?: string; staffRole?: string }) =>
+  register: (data: { fullName: string; email: string; password: string; role?: string; staffRole?: string; phone?: string }) =>
     unwrap(api.post('/auth/register', data))
 };
 

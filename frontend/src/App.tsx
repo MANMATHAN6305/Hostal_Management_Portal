@@ -47,6 +47,10 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/sign-in" element={<Login />} />
+      <Route path="/signin" element={<Login />} />
+      <Route path="/signup" element={<Navigate to="/register" replace />} />
+      <Route path="/sign-up" element={<Navigate to="/register" replace />} />
       <Route path="/register" element={<Register />} />
 
       <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
