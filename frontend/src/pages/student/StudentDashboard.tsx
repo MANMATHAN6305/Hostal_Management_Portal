@@ -5,11 +5,19 @@ import { Button } from '@/components/ui/Button';
 import { studentApi } from '@/lib/api';
 
 const QuickActionButton = ({ icon, label, href }: { icon: string; label: string; href: string }) => (
-  <Link to={href} className="group">
-    <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-gray-200 text-center">
-      <div className="text-3xl mb-2">{icon}</div>
-      <p className="font-semibold text-gray-900 text-sm">{label}</p>
-    </div>
+  <Link to={href} className="group block">
+    <Card className="relative overflow-hidden h-full hover:shadow-lg transition-shadow duration-300">
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 opacity-5" />
+      <CardContent className="relative">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Quick Action</p>
+            <p className="text-lg font-bold text-gray-900">{label}</p>
+          </div>
+          <span className="text-3xl">{icon}</span>
+        </div>
+      </CardContent>
+    </Card>
   </Link>
 );
 
@@ -130,7 +138,7 @@ export default function StudentDashboard() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <QuickActionButton icon="🏫" label="Apply Hostel" href="/student/apply" />
           <QuickActionButton icon="🏠" label="My Room" href="/student/room" />
           <QuickActionButton icon="📊" label="Attendance" href="/student/attendance" />

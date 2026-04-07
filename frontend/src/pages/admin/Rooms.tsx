@@ -465,19 +465,19 @@ export default function Rooms() {
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 px-1">
               <h2 className="text-sm font-semibold text-[var(--foreground)]">Room Seat Grid</h2>
-              <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[var(--foreground-muted)]">
-                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] px-2 py-1">
-                  <span className="h-3 w-3 rounded-sm border border-[var(--surface)] bg-blue-300 shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]" />
-                  Available
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] px-2 py-1">
-                  <span className="h-3 w-3 rounded-sm border border-[var(--surface)] bg-green-400 shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]" />
-                  Occupied
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] px-2 py-1">
-                  <span className="h-3 w-3 rounded-sm border border-[var(--surface)] bg-red-400 shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]" />
-                  Maintenance
-                </span>
+              <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-[var(--foreground-muted)]">
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded border border-white" style={{ backgroundColor: '#93c5fd' }} />
+                  <span>Available</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded border border-white" style={{ backgroundColor: '#4ade80' }} />
+                  <span>Occupied</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded border border-white" style={{ backgroundColor: '#fb7185' }} />
+                  <span>Maintenance</span>
+                </div>
               </div>
             </div>
             <div className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-[var(--foreground)]">
@@ -569,11 +569,11 @@ const RoomCard = ({ room, onClick }: { room: Room; onClick: () => void }) => {
 
   const getBedToneClass = (slotIndex: number, bedCount: number) => {
     if (room.status === 'MAINTENANCE') {
-      return 'bg-red-400';
+      return 'bg-[#fb7185]';
     }
 
     const occupiedVisual = getOccupiedVisualCount(bedCount);
-    return slotIndex < occupiedVisual ? 'bg-green-400' : 'bg-blue-300';
+    return slotIndex < occupiedVisual ? 'bg-[#4ade80]' : 'bg-[#93c5fd]';
   };
   
   const renderBedLayout = (bedCount: number) => {
@@ -654,7 +654,7 @@ const RoomCard = ({ room, onClick }: { room: Room; onClick: () => void }) => {
     >
       <div className="px-2 pt-2 flex w-full justify-between items-center">
         <div className="text-xs font-bold text-[var(--foreground)]">{room.roomNumber}</div>
-        <div className={`w-2 h-2 rounded-full ${room.status === 'AVAILABLE' ? 'bg-blue-300' : room.status === 'OCCUPIED' ? 'bg-green-400' : 'bg-red-400'}`} />
+        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: room.status === 'AVAILABLE' ? '#06b6d4' : room.status === 'OCCUPIED' ? '#22c55e' : '#ef4444' }} />
       </div>
       
       <div className="flex-grow flex items-center justify-center w-full">

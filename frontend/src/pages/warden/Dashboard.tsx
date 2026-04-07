@@ -155,24 +155,42 @@ export default function WardenDashboard() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">⚡ Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {quickActions.map((action) => (
-            <Link 
-              key={action.title} 
-              to={action.href} 
-              className={`${action.color} hover:opacity-90 text-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 relative`}
-            >
-              <div className="text-center">
-                <div className="text-3xl mb-2">{action.icon}</div>
-                <div className="font-semibold">{action.title}</div>
-                {action.title === 'Messages' && stats.unreadMessages > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse">
-                    {stats.unreadMessages}
-                  </span>
-                )}
-              </div>
-            </Link>
-          ))}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+          {quickActions.map((action) => {
+            const colorMap: Record<string, { gradient: string, label: string }> = {
+              'bg-blue-600': { gradient: 'from-blue-500 to-blue-600', label: 'Students' },
+              'bg-green-600': { gradient: 'from-green-500 to-green-600', label: 'Requests' },
+              'bg-orange-600': { gradient: 'from-orange-500 to-orange-600', label: 'Complaints' },
+              'bg-purple-600': { gradient: 'from-purple-500 to-purple-600', label: 'Attendance' },
+              'bg-indigo-600': { gradient: 'from-indigo-500 to-indigo-600', label: 'Messages' }
+            };
+            const colors = colorMap[action.color] || { gradient: 'from-gray-500 to-gray-600', label: 'Action' };
+            
+            return (
+              <Link 
+                key={action.title} 
+                to={action.href}
+              >
+                <Card className="relative overflow-hidden h-full hover:shadow-lg transition-shadow duration-300">
+                  <div className={`absolute inset-0 bg-gradient-to-r ${colors.gradient} opacity-5`} />
+                  <CardContent className="relative">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 mb-1">Quick Action</p>
+                        <p className="text-lg font-bold text-gray-900">{action.title}</p>
+                      </div>
+                      <span className="text-3xl">{action.icon}</span>
+                      {action.title === 'Messages' && stats.unreadMessages > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse">
+                          {stats.unreadMessages}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       </div>
 

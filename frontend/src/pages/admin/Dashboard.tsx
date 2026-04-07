@@ -107,23 +107,30 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg">
-        <h1 className="text-3xl font-bold mb-2">Welcome back, {userName}</h1>
+        <h1 className="text-3xl font-bold mb-2 text-white">Welcome back, {userName}</h1>
         <p className="text-blue-100">Manage your hostel operations efficiently</p>
       </div>
 
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {quickActions.map((action) => (
             <Link
               key={action.title}
               to={action.href}
-              className={`bg-gradient-to-br ${action.color} text-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-between group`}
             >
-              <div>
-                <p className="font-semibold text-sm">{action.title}</p>
-              </div>
-              <span className="text-2xl opacity-80 group-hover:opacity-100 transition-opacity">{action.icon}</span>
+              <Card className="relative overflow-hidden h-full hover:shadow-lg transition-shadow duration-300">
+                <div className={`absolute inset-0 bg-gradient-to-r ${action.color} opacity-5`} />
+                <CardContent className="relative">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">Quick Action</p>
+                      <p className="text-lg font-bold text-gray-900">{action.title}</p>
+                    </div>
+                    <span className="text-3xl">{action.icon}</span>
+                  </div>
+                </CardContent>
+              </Card>
             </Link>
           ))}
         </div>
