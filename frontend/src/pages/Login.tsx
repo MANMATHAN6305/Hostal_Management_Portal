@@ -38,18 +38,23 @@ export default function Login() {
     role?: string | null;
     studentId?: string | number | null;
   }) => {
-    localStorage.clear();
+    const authKeys = ['isLoggedIn', 'token', 'authToken', 'accessToken', 'userId', 'userEmail', 'userName', 'userRole', 'studentId'];
+    authKeys.forEach((key) => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+
     localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('token', session.token || '');
-    localStorage.setItem('userId', session.userId ? String(session.userId) : '');
-    localStorage.setItem('userEmail', session.email || '');
-    localStorage.setItem('userName', session.fullName || '');
     localStorage.setItem('userRole', session.role || '');
     if (session.studentId) {
       localStorage.setItem('studentId', String(session.studentId));
     } else {
       localStorage.removeItem('studentId');
     }
+
+    sessionStorage.setItem('token', session.token || '');
+    sessionStorage.setItem('userId', session.userId ? String(session.userId) : '');
+    sessionStorage.setItem('userName', session.fullName || '');
   };
 
   // Handle Google OAuth callback

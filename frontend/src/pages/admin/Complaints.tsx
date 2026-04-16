@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { getBackendAssetUrl } from '@/lib/api';
 
 const staffMap: Record<string, string> = {
   ELECTRICAL: 'ELECTRICIAN',
@@ -33,7 +34,7 @@ export default function AdminComplaints() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Complaint Management</h1>
+      <h1 className="text-2xl font-bold">Complaints</h1>
       <Card>
         <CardContent className="space-y-2">
           {complaints.map((c) => (
@@ -43,6 +44,15 @@ export default function AdminComplaints() {
                 <span className="font-semibold">{c.status}</span>
               </div>
               <p className="text-sm text-gray-600">{c.message}</p>
+              {c.imageUrl && (
+                <div className="mt-2">
+                  <img
+                    src={getBackendAssetUrl(c.imageUrl)}
+                    alt="Complaint evidence"
+                    className="w-full max-w-xs h-40 object-cover rounded-md border border-gray-300"
+                  />
+                </div>
+              )}
               <p className="text-xs text-gray-500">Assigned: {c.assignedStaffRole || 'Not assigned'}</p>
               <div className="flex gap-2 mt-2">
                 <Button size="sm" onClick={() => assign(c.id, c.category)}>Assign</Button>

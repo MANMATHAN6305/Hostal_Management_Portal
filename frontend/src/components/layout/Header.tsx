@@ -46,8 +46,8 @@ export function Header({ onMenuClick }: HeaderProps) {
   }, []);
 
   useEffect(() => {
-    const name = localStorage.getItem('userName') || 'Admin';
-    const email = localStorage.getItem('userEmail') || '';
+    const name = sessionStorage.getItem('userName') || localStorage.getItem('userName') || 'Admin';
+    const email = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || '';
     const role = localStorage.getItem('userRole') || '';
     setUserName(name);
     setUserEmail(email);
@@ -78,15 +78,11 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('token');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('studentId');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
+    const authKeys = ['isLoggedIn', 'token', 'authToken', 'accessToken', 'userId', 'studentId', 'userEmail', 'userName', 'userRole'];
+    authKeys.forEach((key) => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
     navigate('/login');
   };
 
@@ -327,7 +323,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               </button>
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-sm text-[var(--foreground-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                className="w-full text-left px-4 py-2 text-sm text-red-800 hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
               >
                 Logout
               </button>

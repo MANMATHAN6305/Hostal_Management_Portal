@@ -36,6 +36,10 @@ const Complaint = sequelize.define('Complaint', {
   resolvedAt: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  imageUrl: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   }
 }, {
   timestamps: true

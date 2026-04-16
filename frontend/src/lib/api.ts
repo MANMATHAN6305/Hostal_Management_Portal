@@ -32,12 +32,26 @@ const rawApiBaseUrl =
 
 const API_BASE_URL = rawApiBaseUrl.replace(/\/+$/, '');
 
+export const getBackendAssetUrl = (assetPath?: string | null): string => {
+  if (!assetPath) return '';
+  if (/^https?:\/\//i.test(assetPath)) return assetPath;
+
+  const root = API_BASE_URL.replace(/\/api\/?$/i, '');
+  const normalizedPath = assetPath.startsWith('/') ? assetPath : `/${assetPath}`;
+  return `${root}${normalizedPath}`;
+};
+
 export const api = axios.create({
   baseURL: API_BASE_URL
 });
 
 const AUTH_TOKEN_KEYS = ['token', 'authToken', 'accessToken'];
 const SESSION_KEYS = ['isLoggedIn', 'token', 'authToken', 'accessToken', 'userId', 'userEmail', 'userName', 'userRole', 'studentId'];
+
+const storageScopes: Storage[] =
+  typeof window === 'undefined'
+    ? []
+    : [window.sessionStorage, window.localStorage];
 
 const normalizeToken = (rawToken: string | null): string | null => {
   if (!rawToken) return null;
@@ -60,15 +74,20 @@ const normalizeToken = (rawToken: string | null): string | null => {
 };
 
 const getStoredToken = (): string | null => {
-  for (const key of AUTH_TOKEN_KEYS) {
-    const token = normalizeToken(localStorage.getItem(key));
-    if (token) return token;
+  for (const storage of storageScopes) {
+    for (const key of AUTH_TOKEN_KEYS) {
+      const token = normalizeToken(storage.getItem(key));
+      if (token) return token;
+    }
   }
+
   return null;
 };
 
 const clearSession = () => {
-  SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
+  storageScopes.forEach((storage) => {
+    SESSION_KEYS.forEach((key) => storage.removeItem(key));
+  });
 };
 
 api.interceptors.request.use((config: any) => {
@@ -166,7 +185,20 @@ export const studentApi = {
   getAttendance: () => unwrap(api.get('/student/attendance')),
   getMenu: () => unwrap(api.get('/student/menu')),
   getComplaints: () => unwrap(api.get('/complaints')),
-  submitComplaint: (data: { message: string; category: string }) => unwrap(api.post('/complaints', data)),
+  submitComplaint: (data: { message: string; category: string; imageFile?: File | null }) => {
+    if (data.imageFile) {
+      const formData = new FormData();
+      formData.append('message', data.message);
+      formData.append('category', data.category);
+      formData.append('image', data.imageFile);
+      return unwrap(api.post('/complaints', formData));
+    }
+
+    return unwrap(api.post('/complaints', {
+      message: data.message,
+      category: data.category
+    }));
+  },
   getDashboard: () => unwrap(api.get('/student/dashboard')),
   submitApplication: (data: {
     fullName: string;
@@ -211,6 +243,13 @@ export const studentApi = {
   }) =>
     unwrap(api.post('/requests', data)),
   getRequests: () => unwrap(api.get('/requests')),
+  submitFoodFeedback: (data: {
+    day: string;
+    mealType: 'BREAKFAST' | 'LUNCH' | 'DINNER';
+    foodItem: string;
+    rating: number;
+    comment?: string;
+  }) => unwrap(api.post('/feedback', data)),
   getStaffDirectory: () => unwrap(api.get('/complaints/directory/staff')),
   getPayments: () => unwrap(api.get('/payments'))
 };
@@ -225,6 +264,10 @@ export const adminApi = {
   getMenu: (weekStartDate?: string) =>
     unwrap(api.get('/admin/menu', { params: weekStartDate ? { weekStartDate } : undefined })),
   updateMenu: (data: { weekStartDate: string; menuItems: any[] }) => unwrap(api.post('/admin/menu', data)),
+  getFoodFeedback: (filters?: { day?: string; mealType?: string; rating?: string | number }) =>
+    unwrap(api.get('/feedback', { params: filters })),
+  getTodayFoodFeedback: () => unwrap(api.get('/feedback/today')),
+  getFoodFeedbackStats: (filters?: { day?: string }) => unwrap(api.get('/feedback/stats', { params: filters })),
   getStaff: () => unwrap(api.get('/staff')),
   createStaff: (data: unknown) => unwrap(api.post('/staff', data)),
   updateStaff: (id: number, data: unknown) => unwrap(api.put(`/staff/${id}`, data)),
@@ -260,6 +303,10 @@ export const wardenApi = {
   assignComplaint: (id: number, assignedStaffRole: string) => unwrap(api.put(`/complaints/${id}/assign`, { assignedStaffRole })),
   updateComplaint: (id: number, data: { status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'; adminReply?: string }) =>
     unwrap(api.put(`/complaints/${id}/status`, data)),
+  getFoodFeedback: (filters?: { day?: string; mealType?: string; rating?: string | number }) =>
+    unwrap(api.get('/feedback', { params: filters })),
+  getTodayFoodFeedback: () => unwrap(api.get('/feedback/today')),
+  getFoodFeedbackStats: (filters?: { day?: string }) => unwrap(api.get('/feedback/stats', { params: filters })),
   getAttendance: () => unwrap(api.get('/attendance')),
   // Messages
   getSentMessages: () => unwrap(api.get('/messages/warden/sent')),

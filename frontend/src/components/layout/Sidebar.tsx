@@ -15,7 +15,8 @@ const iconByLabel: Record<string, string> = {
   'Students List': 'M3 6h18M3 12h18M3 18h12',
   Requests: 'M5 5h14v14H5zM8 9h8M8 13h6',
   Complaints: 'M12 8v5m0 3h.01',
-  'Assigned Complaints': 'M12 8v5m0 3h.01'
+  'Assigned Complaints': 'M12 8v5m0 3h.01',
+  'Menu Feedback': 'M6 4h12M6 10h12M6 16h8'
 };
 
 const NavIcon = ({ label }: { label: string }) => {
@@ -44,8 +45,8 @@ const navByRole: Record<string, NavItem[]> = {
     { href: '/warden/dashboard', label: 'Dashboard' },
     { href: '/warden/students', label: 'Students List' },
     { href: '/warden/requests', label: 'Requests' },
-    { href: '/warden/complaints', label: 'Complaints' },
     { href: '/warden/attendance', label: 'Attendance' },
+    { href: '/warden/menu', label: 'Menu Feedback' },
     { href: '/warden/messages', label: 'Messages' }
   ],
   STAFF: [
@@ -66,14 +67,15 @@ export function Sidebar({ onClose }: SidebarProps) {
 
   const handleLogout = () => {
     localStorage.clear();
+    sessionStorage.clear();
     navigate('/login');
   };
 
   const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(`${href}/`);
 
   return (
-    <aside className="w-64 bg-[var(--surface)] text-[var(--foreground)] border-r border-[var(--border)] h-screen flex flex-col overflow-y-auto">
-      <div className="p-4">
+    <aside className="w-64 h-full min-h-screen bg-[var(--surface)] text-[var(--foreground)] border-r border-[var(--border)] flex flex-col">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-base font-semibold tracking-tight">Hostel Portal</h1>
           <button onClick={onClose} className="lg:hidden p-1.5 rounded-md hover:bg-[var(--surface-muted)]">
@@ -101,8 +103,8 @@ export function Sidebar({ onClose }: SidebarProps) {
         </ul>
       </div>
 
-      <div className="mt-auto p-4 border-t border-[var(--border)]">
-        <button onClick={handleLogout} className="px-3 py-2 rounded-md w-full text-left text-sm text-[var(--foreground-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]">
+      <div className="shrink-0 p-4 border-t border-[var(--border)] bg-[var(--surface)]">
+        <button onClick={handleLogout} className="px-3 py-2 rounded-md w-full text-left text-sm text-red-800 hover:bg-[var(--surface-muted)] hover:text-red-600">
           Logout
         </button>
       </div>

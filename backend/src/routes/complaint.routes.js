@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const Complaint = require('../models/Complaint');
 const Student = require('../models/Student');
 const User = require('../models/User');
@@ -10,6 +13,51 @@ const Hostel = require('../models/Hostel');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
 const { Op } = require('sequelize');
+
+const complaintsUploadDir = path.join(__dirname, '..', '..', 'uploads', 'complaints');
+if (!fs.existsSync(complaintsUploadDir)) {
+  fs.mkdirSync(complaintsUploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, complaintsUploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const safeExt = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+    cb(null, `complaint-${Date.now()}-${Math.round(Math.random() * 1e9)}${safeExt}`);
+  }
+});
+
+const uploadComplaintImage = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      cb(new Error('Only image files are allowed for complaint upload.'));
+      return;
+    }
+    cb(null, true);
+  }
+}).single('image');
+
+const complaintImageUploadHandler = (req, res, next) => {
+  uploadComplaintImage(req, res, (err) => {
+    if (!err) return next();
+
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Complaint image must be 5MB or smaller.'
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to upload complaint image.'
+    });
+  });
+};
 
 let complaintSchemaReady = false;
 
@@ -160,7 +208,7 @@ const ensureComplaintSchema = async () => {
   complaintSchemaReady = true;
 };
 
-router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
+router.post('/', verifyToken, authorizeRoles('STUDENT'), complaintImageUploadHandler, async (req, res) => {
   try {
     await ensureComplaintSchema();
 
@@ -181,12 +229,13 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), async (req, res) => {
       StudentId: student.id,
       message: message.trim(),
       category,
-      assignedById: assignedWardenId
+      assignedById: assignedWardenId,
+      imageUrl: req.file ? `/uploads/complaints/${req.file.filename}` : null
     });
 
     res.json({ success: true, complaint });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to create complaint.', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to create complaint.' });
   }
 });
 
@@ -195,7 +244,7 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT', 'STAFF
     await ensureComplaintSchema();
 
     const include = [
-      { model: Student, attributes: ['id', 'studentId', 'firstName', 'lastName', 'email'] },
+      { model: Student, attributes: ['id', 'studentId', 'firstName', 'lastName', 'email', 'phone'] },
       { model: User, as: 'AssignedBy', attributes: ['id', 'fullName', 'email'] }
     ];
     let complaints = await Complaint.findAll({ include, order: [['createdAt', 'DESC']] });
@@ -257,7 +306,7 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT', 'STAFF
 
     res.json({ success: true, complaints });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch complaints.', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch complaints.' });
   }
 });
 
@@ -280,7 +329,7 @@ router.put('/:id/assign', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async 
 
     res.json({ success: true, complaint });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to assign complaint.', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to assign complaint.' });
   }
 });
 
@@ -315,7 +364,7 @@ router.put('/:id/status', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STAFF'
 
     res.json({ success: true, complaint });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update complaint.', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update complaint.' });
   }
 });
 
@@ -327,7 +376,7 @@ router.get('/directory/staff', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'S
     });
     res.json({ success: true, staff });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch staff directory.', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch staff directory.' });
   }
 });
 

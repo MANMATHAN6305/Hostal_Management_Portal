@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { studentApi } from '@/lib/api';
+import { Alert, Button, Snackbar } from '@mui/material';
+import FoodFeedbackDialog, { MealType } from '@/components/feedback/FoodFeedbackDialog';
 
 interface MenuItem {
   id: number;
@@ -27,6 +29,12 @@ export default function Menu() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [weekStart, setWeekStart] = useState<string | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; severity: 'success' | 'error'; message: string }>({
+    open: false,
+    severity: 'success',
+    message: ''
+  });
 
   useEffect(() => {
     fetchMenu();
@@ -57,6 +65,70 @@ export default function Menu() {
     return days[new Date().getDay()];
   };
 
+  const submitFoodFeedback = async (payload: {
+    day: string;
+    mealType: MealType;
+    foodItem: string;
+    rating: number;
+    comment: string;
+    hasFoodComplaint: boolean;
+    complaintText: string;
+    complaintImageFile: File | null;
+  }) => {
+    try {
+      const response = await studentApi.submitFoodFeedback(payload);
+      if (!response.success) {
+        const message = response.message || 'Failed to submit feedback';
+        setSnackbar({
+          open: true,
+          severity: 'error',
+          message
+        });
+        return { success: false, message };
+      }
+
+      let complaintMessage = '';
+      if (payload.hasFoodComplaint) {
+        const complaintLines = [
+          'Food Complaint from Weekly Menu Feedback',
+          `Day: ${payload.day}`,
+          `Meal: ${payload.mealType}`,
+          `Food Item: ${payload.foodItem}`,
+          `Rating: ${payload.rating}/5`,
+          `Student Feedback: ${payload.comment || 'No feedback text provided.'}`,
+          `Complaint Details: ${payload.complaintText || 'Not provided.'}`
+        ];
+
+        try {
+          await studentApi.submitComplaint({
+            category: 'OTHER',
+            message: complaintLines.join('\n'),
+            imageFile: payload.complaintImageFile
+          });
+          complaintMessage = ' Complaint also submitted.';
+        } catch (complaintErr: any) {
+          complaintMessage = ' Feedback submitted, but complaint upload failed.';
+          console.error('Complaint submission failed:', complaintErr);
+        }
+      }
+
+      setSnackbar({
+        open: true,
+        severity: 'success',
+        message: response.message || `Feedback submitted successfully.${complaintMessage}`
+      });
+      return { success: true, message: response.message || 'Feedback submitted successfully.' };
+    } catch (err: any) {
+      const message = err?.response?.data?.message || 'Failed to submit feedback';
+      setSnackbar({
+        open: true,
+        severity: 'error',
+        message
+      });
+      return { success: false, message };
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -83,13 +155,33 @@ export default function Menu() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Weekly Menu</h1>
-        <p className="text-gray-600 mt-1">
-          {weekStart 
-            ? `Week starting ${new Date(weekStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` 
-            : 'View the hostel food menu'}
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Weekly Menu</h1>
+          <p className="text-gray-600 mt-1">
+            {weekStart
+              ? `Week starting ${new Date(weekStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+              : 'View the hostel food menu'}
+          </p>
+        </div>
+        <Button
+          variant="contained"
+          onClick={() => setFeedbackOpen(true)}
+          sx={{
+            background: 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)',
+            borderRadius: '12px',
+            px: 2.25,
+            py: 1,
+            fontWeight: 700,
+            textTransform: 'none',
+            boxShadow: '0 8px 24px rgba(217, 70, 239, 0.32)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #db2777 0%, #c026d3 100%)'
+            }
+          }}
+        >
+          Add Food Feedback
+        </Button>
       </div>
 
       {/* Today's Menu Highlight */}
@@ -202,6 +294,30 @@ export default function Menu() {
           </div>
         </div>
       )}
+
+      <FoodFeedbackDialog
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        menu={menu}
+        defaultDay={getCurrentDay()}
+        onSubmit={submitFoodFeedback}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3500}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

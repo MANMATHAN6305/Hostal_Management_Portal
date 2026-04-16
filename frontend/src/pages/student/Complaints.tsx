@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { studentApi } from '@/lib/api';
+import { getBackendAssetUrl } from '@/lib/api';
 
 const categories = [
   { label: '🔧 Room Maintenance Issue', value: 'MAINTENANCE' },
@@ -145,6 +146,15 @@ export default function StudentComplaints() {
                     <div>
                       <p className="font-semibold text-gray-900">{c.category}</p>
                       <p className="text-sm text-gray-600 mt-1">{c.message}</p>
+                      {c.imageUrl && (
+                        <div className="mt-3">
+                          <img
+                            src={getBackendAssetUrl(c.imageUrl)}
+                            alt="Complaint evidence"
+                            className="w-full max-w-xs h-40 object-cover rounded-md border border-gray-300"
+                          />
+                        </div>
+                      )}
                     </div>
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2 ${
                       statusColors[c.status] || 'bg-gray-100 text-gray-800'

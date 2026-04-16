@@ -92,7 +92,7 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    setUserName(localStorage.getItem('userName') || 'Admin');
+    setUserName(sessionStorage.getItem('userName') || localStorage.getItem('userName') || 'Admin');
     load();
   }, []);
 

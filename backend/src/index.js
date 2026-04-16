@@ -2,6 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const passport = require('passport');
+const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const { sequelize } = require('./config/database');
 
 require('./models');
@@ -22,10 +26,12 @@ const hostelRoutes = require('./routes/hostel.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const wardenRoutes = require('./routes/warden.routes');
 const messageRoutes = require('./routes/message.routes');
+const feedbackRoutes = require('./routes/feedback.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const DB_CONNECT_RETRY_MS = parseInt(process.env.DB_CONNECT_RETRY_MS || '10000', 10);
 const DB_SYNC_ON_STARTUP =
   String(
@@ -67,10 +73,45 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 
+const generalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.API_RATE_LIMIT_MAX || 700),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests. Please try again later.' }
+});
+
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX || 80),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many authentication attempts. Please try again later.' }
+});
+
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  })
+);
+app.use(compression());
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(passport.initialize());
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, '..', 'uploads'), {
+    maxAge: IS_PRODUCTION ? '7d' : 0,
+    etag: true
+  })
+);
+app.use('/api', generalRateLimiter);
+app.use('/api/auth', authRateLimiter);
 
 app.get('/health', (_req, res) => {
   res.status(isDatabaseReady ? 200 : 503).json({
@@ -105,6 +146,7 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/hostels', hostelRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 app.get('/', (_req, res) => {
   res.json({ message: 'Welcome to Hostel Management Portal API' });

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 const quickActions = [
   { title: 'Students List', href: '/warden/students', color: 'bg-blue-600', icon: '👥' },
   { title: 'Requests', href: '/warden/requests', color: 'bg-green-600', icon: '📝' },
-  { title: 'Complaints', href: '/warden/complaints', color: 'bg-orange-600', icon: '🔧' },
+  { title: 'Menu Feedback', href: '/warden/menu', color: 'bg-orange-600', icon: '🍽️' },
   { title: 'Attendance', href: '/warden/attendance', color: 'bg-purple-600', icon: '📊' },
   { title: 'Messages', href: '/warden/messages', color: 'bg-indigo-600', icon: '✉️' }
 ];
@@ -103,6 +103,7 @@ export default function WardenDashboard() {
           message.toLowerCase().includes('no token provided'))
       ) {
         localStorage.clear();
+        sessionStorage.clear();
         navigate('/login', { replace: true });
         return;
       }
@@ -271,7 +272,7 @@ export default function WardenDashboard() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900">Maintenance Complaints</h3>
-                  <Link to="/warden/complaints">
+                  <Link to="/warden/menu">
                     <Button size="sm" variant="outline">View All →</Button>
                   </Link>
                 </div>

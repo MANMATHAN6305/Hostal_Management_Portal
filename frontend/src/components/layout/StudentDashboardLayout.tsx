@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { StudentSidebar } from './StudentSidebar';
 import { Header } from './Header';
 
 export default function StudentDashboardLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -43,7 +45,17 @@ export default function StudentDashboardLayout() {
       <div className="lg:ml-64 flex flex-col min-h-screen">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 md:p-8 overflow-auto">
-          <Outlet />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

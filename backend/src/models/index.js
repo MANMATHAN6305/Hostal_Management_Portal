@@ -11,6 +11,7 @@ const Attendance = require('./Attendance');
 const Payment = require('./Payment');
 const Visitor = require('./Visitor');
 const WardenMessage = require('./WardenMessage');
+const Feedback = require('./Feedback');
 
 // Set up associations
 User.hasMany(Hostel, { foreignKey: 'wardenId', as: 'assignedHostels' });
@@ -35,5 +36,6 @@ module.exports = {
   Attendance,
   Payment,
   Visitor,
-  WardenMessage
+  WardenMessage,
+  Feedback
 };

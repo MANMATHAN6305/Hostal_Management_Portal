@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { wardenApi } from '@/lib/api';
 import { Card, CardContent, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { getBackendAssetUrl } from '@/lib/api';
 
 const statusColors: Record<string, string> = {
   'PENDING': 'bg-yellow-100 text-yellow-800',
@@ -291,6 +292,16 @@ export default function WardenComplaints() {
                     <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <p className="text-sm text-gray-900 mb-2"><span className="font-semibold">Issue:</span></p>
                       <p className="text-gray-700">{c.message}</p>
+                      {c.imageUrl && (
+                        <div className="mt-3">
+                          <p className="text-xs font-semibold text-gray-700 mb-2">Image Evidence</p>
+                          <img
+                            src={getBackendAssetUrl(c.imageUrl)}
+                            alt="Complaint evidence"
+                            className="w-full max-w-sm h-44 object-cover rounded-md border border-gray-300"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Contact Information */}
@@ -388,6 +399,9 @@ export default function WardenComplaints() {
                       <p className="font-semibold text-gray-900 truncate">{c.category}</p>
                       <p className="text-sm text-gray-600 truncate">{c.Student?.firstName} {c.Student?.lastName}</p>
                       <p className="text-xs text-gray-500 line-clamp-1">{c.message}</p>
+                      {c.imageUrl && (
+                        <p className="text-xs text-indigo-600 mt-0.5">📷 Image attached</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className={`px-2 py-1 rounded text-xs font-semibold border ${statusColors[c.status] || 'bg-gray-100 text-gray-800'}`}>
