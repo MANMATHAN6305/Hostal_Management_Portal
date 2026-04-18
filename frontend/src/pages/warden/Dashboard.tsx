@@ -140,7 +140,7 @@ export default function WardenDashboard() {
   return (
     <div className="space-y-8">
       {/* Header with Gradient */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-lg p-8 text-white">
+      <div className="dashboard-hero-3d rounded-2xl p-8 text-white">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">Warden Dashboard</h1>

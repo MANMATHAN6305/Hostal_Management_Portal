@@ -110,7 +110,7 @@ export default function StudentDashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
+      <div className="dashboard-hero-3d rounded-2xl p-8 text-white">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">
