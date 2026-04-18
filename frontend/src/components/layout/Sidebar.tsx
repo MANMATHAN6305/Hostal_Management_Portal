@@ -89,10 +89,10 @@ export function Sidebar({ onClose }: SidebarProps) {
               <Link
                 to={item.href}
                 onClick={onClose}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm border ${
+                className={`sidebar-nav-link flex items-center gap-2.5 px-3 py-2 rounded-md text-sm ${
                   isActive(item.href)
-                    ? 'bg-[var(--surface-muted)] border-[var(--border)] text-[var(--foreground)]'
-                    : 'border-transparent text-[var(--foreground-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]'
+                    ? 'sidebar-nav-link-active'
+                    : 'text-[var(--foreground-muted)] hover:bg-[var(--surface-muted)]'
                 }`}
               >
                 <NavIcon label={item.label} />

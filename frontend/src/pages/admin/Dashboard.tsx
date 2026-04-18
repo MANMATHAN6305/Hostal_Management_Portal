@@ -106,9 +106,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg">
-        <h1 className="text-3xl font-bold mb-2 text-white">Welcome back, {userName}</h1>
-        <p className="text-blue-100">Manage your hostel operations efficiently</p>
+      <div className="dashboard-hero-3d rounded-2xl p-8">
+        <div className="relative">
+          <h1 className="text-3xl font-bold mb-2 text-white">Welcome back, {userName}</h1>
+          <p className="text-blue-100">Manage your hostel operations efficiently</p>
+        </div>
       </div>
 
       <div>

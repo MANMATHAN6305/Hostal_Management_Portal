@@ -136,6 +136,64 @@ main {
   color: var(--foreground);
 }
 
+.sidebar-nav-link {
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar-nav-link-active {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--surface-subtle) 86%, white), var(--surface-muted));
+  border-color: var(--border-strong);
+  color: var(--foreground);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 2px 6px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+[data-theme='dark'] .sidebar-nav-link-active {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--surface) 82%, white 5%), var(--surface-muted));
+  border-color: color-mix(in srgb, var(--border-strong) 75%, white 10%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.28);
+}
+
+.sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: var(--surface-muted);
+  color: var(--foreground);
+}
+
+.dashboard-hero-3d {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 70%, white 20%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 94%, white 6%), color-mix(in srgb, var(--primary) 84%, black 16%));
+  color: var(--primary-foreground);
+  box-shadow:
+    inset 0 1px 0 rgba(21, 20, 20, 0.078),
+    inset 0 -1px 0 rgba(22, 21, 21, 0.181),
+    0 18px 36px rgba(43, 45, 50, 0.322);
+}
+
+.dashboard-hero-3d::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.22), transparent 42%);
+  pointer-events: none;
+}
+
+[data-theme='dark'] .dashboard-hero-3d {
+  border-color: color-mix(in srgb, var(--border-strong) 72%, white 8%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--surface) 82%, white 8%), color-mix(in srgb, var(--surface-muted) 88%, black 12%));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.02),
+    0 18px 36px rgba(0, 0, 0, 0.32);
+}
+
+[data-theme='dark'] .dashboard-hero-3d::before {
+  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 42%);
+}
+
 /* Monospace font utility */
 .mono {
   font-family: 'IBM Plex Mono', Consolas, 'Courier New', monospace;
