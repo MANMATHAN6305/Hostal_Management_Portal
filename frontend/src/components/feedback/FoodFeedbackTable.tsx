@@ -4,6 +4,8 @@ import {
   Card,
   CardContent,
   Chip,
+  Dialog,
+  DialogContent,
   FormControl,
   InputLabel,
   MenuItem,
@@ -17,6 +19,8 @@ import {
   TableRow,
   Typography
 } from '@mui/material';
+import { useState } from 'react';
+import { getBackendAssetUrl } from '@/lib/api';
 
 export interface FeedbackRow {
   id: number;
@@ -26,6 +30,8 @@ export interface FeedbackRow {
   food_item: string;
   rating: number;
   comment: string | null;
+  image_url?: string | null;
+  imageUrl?: string | null;
   created_at: string;
 }
 
@@ -76,6 +82,13 @@ const selectMenuProps = {
 };
 
 export default function FoodFeedbackTable({ feedback, stats, filters, onFilterChange }: FoodFeedbackTableProps) {
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
+  const getFeedbackImageUrl = (row: FeedbackRow): string => {
+    const rawPath = row.image_url || row.imageUrl || '';
+    return getBackendAssetUrl(rawPath);
+  };
+
   return (
     <Box sx={{ display: 'grid', gap: 2, color: 'var(--foreground)' }}>
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' } }}>
@@ -245,32 +258,83 @@ export default function FoodFeedbackTable({ feedback, stats, filters, onFilterCh
                 <TableCell sx={{ fontWeight: 700, color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>Food Item</TableCell>
                 <TableCell sx={{ fontWeight: 700, color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>Rating</TableCell>
                 <TableCell sx={{ fontWeight: 700, color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>Comment</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>Image</TableCell>
                 <TableCell sx={{ fontWeight: 700, color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>Submitted Date</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {feedback.map((row) => (
-                <TableRow key={row.id} hover sx={{ '&:hover': { bgcolor: 'var(--surface-muted)' } }}>
-                  <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{row.student_name}</TableCell>
-                  <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{toTitle(row.day)}</TableCell>
-                  <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{toTitle(row.meal_type)}</TableCell>
-                  <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{row.food_item}</TableCell>
-                  <TableCell>
-                    <Rating
-                      value={Number(row.rating)}
-                      readOnly
-                      size="small"
-                      sx={{ '& .MuiRating-iconEmpty': { color: 'var(--foreground-muted)' } }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{row.comment || '-'}</TableCell>
-                  <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{new Date(row.created_at).toLocaleString()}</TableCell>
-                </TableRow>
-              ))}
+              {feedback.map((row) => {
+                const imageUrl = getFeedbackImageUrl(row);
+
+                return (
+                  <TableRow key={row.id} hover sx={{ '&:hover': { bgcolor: 'var(--surface-muted)' } }}>
+                    <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{row.student_name}</TableCell>
+                    <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{toTitle(row.day)}</TableCell>
+                    <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{toTitle(row.meal_type)}</TableCell>
+                    <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{row.food_item}</TableCell>
+                    <TableCell>
+                      <Rating
+                        value={Number(row.rating)}
+                        readOnly
+                        size="small"
+                        sx={{ '& .MuiRating-iconEmpty': { color: 'var(--foreground-muted)' } }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{row.comment || '-'}</TableCell>
+                    <TableCell sx={{ borderBottomColor: 'var(--border)' }}>
+                      {imageUrl ? (
+                        <Box
+                          component="img"
+                          src={imageUrl}
+                          alt="Feedback upload"
+                          onClick={() => setPreviewImageUrl(imageUrl)}
+                          sx={{
+                            width: 72,
+                            height: 72,
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border)',
+                            cursor: 'zoom-in'
+                          }}
+                        />
+                      ) : (
+                        <Typography variant="body2" sx={{ color: 'var(--foreground-muted)' }}>
+                          -
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ color: 'var(--foreground)', borderBottomColor: 'var(--border)' }}>{new Date(row.created_at).toLocaleString()}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
       )}
+
+      <Dialog
+        open={Boolean(previewImageUrl)}
+        onClose={() => setPreviewImageUrl(null)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogContent sx={{ p: 1.5, bgcolor: 'var(--surface)' }}>
+          {previewImageUrl ? (
+            <Box
+              component="img"
+              src={previewImageUrl}
+              alt="Feedback image preview"
+              sx={{
+                width: '100%',
+                maxHeight: '80vh',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                border: '1px solid var(--border)'
+              }}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

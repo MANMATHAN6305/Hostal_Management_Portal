@@ -71,6 +71,7 @@ export default function Menu() {
     foodItem: string;
     rating: number;
     comment: string;
+    feedbackImageFile: File | null;
     hasFoodComplaint: boolean;
     complaintText: string;
     complaintImageFile: File | null;

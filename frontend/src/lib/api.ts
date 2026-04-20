@@ -249,7 +249,27 @@ export const studentApi = {
     foodItem: string;
     rating: number;
     comment?: string;
-  }) => unwrap(api.post('/feedback', data)),
+    feedbackImageFile?: File | null;
+  }) => {
+    if (data.feedbackImageFile) {
+      const formData = new FormData();
+      formData.append('day', data.day);
+      formData.append('mealType', data.mealType);
+      formData.append('foodItem', data.foodItem);
+      formData.append('rating', String(data.rating));
+      formData.append('comment', data.comment || '');
+      formData.append('image', data.feedbackImageFile);
+      return unwrap(api.post('/feedback', formData));
+    }
+
+    return unwrap(api.post('/feedback', {
+      day: data.day,
+      mealType: data.mealType,
+      foodItem: data.foodItem,
+      rating: data.rating,
+      comment: data.comment
+    }));
+  },
   getStaffDirectory: () => unwrap(api.get('/complaints/directory/staff')),
   getPayments: () => unwrap(api.get('/payments'))
 };

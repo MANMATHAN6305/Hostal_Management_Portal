@@ -35,6 +35,7 @@ type FeedbackPayload = {
   foodItem: string;
   rating: number;
   comment: string;
+  feedbackImageFile: File | null;
   hasFoodComplaint: boolean;
   complaintText: string;
   complaintImageFile: File | null;
@@ -98,6 +99,8 @@ export default function FoodFeedbackDialog({
   const [foodItem, setFoodItem] = useState('');
   const [rating, setRating] = useState<number | null>(4);
   const [comment, setComment] = useState('');
+  const [feedbackImageFile, setFeedbackImageFile] = useState<File | null>(null);
+  const [feedbackImagePreview, setFeedbackImagePreview] = useState<string | null>(null);
   const [hasFoodComplaint, setHasFoodComplaint] = useState(false);
   const [complaintText, setComplaintText] = useState('');
   const [complaintImageFile, setComplaintImageFile] = useState<File | null>(null);
@@ -120,11 +123,29 @@ export default function FoodFeedbackDialog({
     setMealType('BREAKFAST');
     setRating(4);
     setComment('');
+    setFeedbackImageFile(null);
+    setFeedbackImagePreview(null);
     setHasFoodComplaint(false);
     setComplaintText('');
     setComplaintImageFile(null);
     setComplaintImagePreview(null);
   }, [open, defaultDay]);
+
+  const handleFeedbackImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setFeedbackImageFile(file);
+
+    if (!file) {
+      setFeedbackImagePreview(null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFeedbackImagePreview(typeof reader.result === 'string' ? reader.result : null);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleComplaintImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
@@ -184,6 +205,7 @@ export default function FoodFeedbackDialog({
         foodItem: foodItem.trim(),
         rating,
         comment: comment.trim(),
+        feedbackImageFile,
         hasFoodComplaint,
         complaintText: complaintText.trim(),
         complaintImageFile
@@ -306,6 +328,48 @@ export default function FoodFeedbackDialog({
               placeholder="Share your experience about the meal..."
               sx={fieldSx}
             />
+
+            <Box
+              sx={{
+                p: 1.5,
+                border: '1px solid var(--border)',
+                borderRadius: '10px',
+                backgroundColor: 'var(--surface-muted)'
+              }}
+            >
+              <Typography variant="body2" sx={{ color: 'var(--foreground)', mb: 0.5, fontWeight: 700 }}>
+                Feedback Image (Optional)
+              </Typography>
+              <Button component="label" variant="outlined" sx={{ textTransform: 'none', fontWeight: 600 }}>
+                Upload Feedback Photo
+                <input
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFeedbackImageChange}
+                />
+              </Button>
+              <Typography variant="caption" sx={{ display: 'block', mt: 0.8, color: 'var(--foreground-muted)' }}>
+                {feedbackImageFile ? `Selected: ${feedbackImageFile.name}` : 'No image selected'}
+              </Typography>
+
+              {feedbackImagePreview && (
+                <Box
+                  component="img"
+                  src={feedbackImagePreview}
+                  alt="Feedback image preview"
+                  sx={{
+                    mt: 1.2,
+                    maxHeight: 180,
+                    width: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)'
+                  }}
+                />
+              )}
+            </Box>
 
             <Box
               sx={{
