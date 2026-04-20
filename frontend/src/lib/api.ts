@@ -304,7 +304,7 @@ export const wardenApi = {
   updateComplaint: (id: number, data: { status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'; adminReply?: string }) =>
     unwrap(api.put(`/complaints/${id}/status`, data)),
   getFoodFeedback: (filters?: { day?: string; mealType?: string; rating?: string | number }) =>
-    unwrap(api.get('/feedback', { params: filters })),
+    unwrap(api.get('/feedback', { params: filters }))
   getTodayFoodFeedback: () => unwrap(api.get('/feedback/today')),
   getFoodFeedbackStats: (filters?: { day?: string }) => unwrap(api.get('/feedback/stats', { params: filters })),
   getAttendance: () => unwrap(api.get('/attendance')),

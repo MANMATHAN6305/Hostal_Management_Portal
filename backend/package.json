@@ -12,6 +12,7 @@
     "migrate:applications": "node src/migrations/addApplicationColumns.js",
     "migrate:extensions": "node src/migrations/addExtensionTables.js",
     "migrate:feedback": "node src/migrations/addFeedbackTable.js",
+    "migrate:feedback-image": "node src/migrations/addFeedbackImageColumn.js",
     "migrate:complaint-image": "node src/migrations/addComplaintImageColumn.js",
     "migrate:sync": "node src/migrations/syncSchema.js",
     "seed:rooms": "node src/seeds/seedRooms.js",

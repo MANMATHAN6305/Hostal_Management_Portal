@@ -53,6 +53,10 @@ async function migrate() {
           type: Sequelize.TEXT,
           allowNull: true
         },
+        image_url: {
+          type: Sequelize.STRING(255),
+          allowNull: true
+        },
         created_at: {
           type: Sequelize.DATE,
           allowNull: false,

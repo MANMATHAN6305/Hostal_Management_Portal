@@ -60,6 +60,39 @@ const complaintImageUploadHandler = (req, res, next) => {
 };
 
 let complaintSchemaReady = false;
+let complaintSchemaState = {
+  tableExists: true,
+  hasImageUrl: false
+};
+
+const complaintBaseAttributes = [
+  'id',
+  'message',
+  'status',
+  'adminReply',
+  'category',
+  'assignedStaffRole',
+  'assignedById',
+  'resolvedAt',
+  'StudentId',
+  'createdAt',
+  'updatedAt'
+];
+
+const normalizeTableName = (name) => String(name).replace(/[`'"]/g, '').toLowerCase();
+
+const getComplaintQueryAttributes = () => {
+  if (complaintSchemaState.hasImageUrl) {
+    return undefined;
+  }
+
+  return complaintBaseAttributes;
+};
+
+const removeUploadedFile = (filePath) => {
+  if (!filePath) return;
+  fs.unlink(filePath, () => {});
+};
 
 const categoryToStaffRole = {
   ELECTRICAL: 'ELECTRICIAN',
@@ -203,14 +236,39 @@ const getStudentForRequest = async (reqUser) => {
 
 const ensureComplaintSchema = async () => {
   if (complaintSchemaReady) return;
-  // Avoid runtime ALTER in production (some managed DB users don't have ALTER privileges).
-  await Complaint.sync();
+
+  const qi = sequelize.getQueryInterface();
+  const existingTablesRaw = await qi.showAllTables();
+  const existingTables = existingTablesRaw.map((table) => normalizeTableName(table));
+
+  if (!existingTables.includes('complaints')) {
+    complaintSchemaState = {
+      tableExists: false,
+      hasImageUrl: false
+    };
+    complaintSchemaReady = true;
+    return;
+  }
+
+  const table = await qi.describeTable('Complaints');
+  complaintSchemaState = {
+    tableExists: true,
+    hasImageUrl: Boolean(table.imageUrl)
+  };
   complaintSchemaReady = true;
 };
 
 router.post('/', verifyToken, authorizeRoles('STUDENT'), complaintImageUploadHandler, async (req, res) => {
   try {
     await ensureComplaintSchema();
+
+    if (!complaintSchemaState.tableExists) {
+      removeUploadedFile(req.file?.path);
+      return res.status(503).json({
+        success: false,
+        message: 'Complaints table is not available on this server yet. Please run complaint migration.'
+      });
+    }
 
     const { message, category } = req.body;
     if (!message || !category) {
@@ -225,16 +283,25 @@ router.post('/', verifyToken, authorizeRoles('STUDENT'), complaintImageUploadHan
     // Find the warden assigned to the student's hostel
     const assignedWardenId = await findWardenForStudent(student.id);
     
-    const complaint = await Complaint.create({
+    const complaintPayload = {
       StudentId: student.id,
       message: message.trim(),
       category,
-      assignedById: assignedWardenId,
-      imageUrl: req.file ? `/uploads/complaints/${req.file.filename}` : null
-    });
+      assignedById: assignedWardenId
+    };
+
+    if (complaintSchemaState.hasImageUrl) {
+      complaintPayload.imageUrl = req.file ? `/uploads/complaints/${req.file.filename}` : null;
+    } else {
+      removeUploadedFile(req.file?.path);
+    }
+
+    const complaint = await Complaint.create(complaintPayload);
 
     res.json({ success: true, complaint });
   } catch (error) {
+    removeUploadedFile(req.file?.path);
+    console.error('Create complaint error:', error);
     res.status(500).json({ success: false, message: 'Failed to create complaint.' });
   }
 });
@@ -243,11 +310,22 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT', 'STAFF
   try {
     await ensureComplaintSchema();
 
+    if (!complaintSchemaState.tableExists) {
+      return res.status(503).json({
+        success: false,
+        message: 'Complaints table is not available on this server yet. Please run complaint migration.'
+      });
+    }
+
     const include = [
       { model: Student, attributes: ['id', 'studentId', 'firstName', 'lastName', 'email', 'phone'] },
       { model: User, as: 'AssignedBy', attributes: ['id', 'fullName', 'email'] }
     ];
-    let complaints = await Complaint.findAll({ include, order: [['createdAt', 'DESC']] });
+    let complaints = await Complaint.findAll({
+      attributes: getComplaintQueryAttributes(),
+      include,
+      order: [['createdAt', 'DESC']]
+    });
 
     if (req.user.role === 'STUDENT') {
       const student = await getStudentForRequest(req.user);
@@ -306,6 +384,7 @@ router.get('/', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STUDENT', 'STAFF
 
     res.json({ success: true, complaints });
   } catch (error) {
+    console.error('Fetch complaints error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch complaints.' });
   }
 });
@@ -314,7 +393,16 @@ router.put('/:id/assign', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async 
   try {
     await ensureComplaintSchema();
 
-    const complaint = await Complaint.findByPk(req.params.id);
+    if (!complaintSchemaState.tableExists) {
+      return res.status(503).json({
+        success: false,
+        message: 'Complaints table is not available on this server yet. Please run complaint migration.'
+      });
+    }
+
+    const complaint = await Complaint.findByPk(req.params.id, {
+      attributes: getComplaintQueryAttributes()
+    });
     if (!complaint) return res.status(404).json({ success: false, message: 'Complaint not found.' });
 
     const assignedStaffRole = req.body.assignedStaffRole || categoryToStaffRole[complaint.category] || null;
@@ -329,6 +417,7 @@ router.put('/:id/assign', verifyToken, authorizeRoles('ADMIN', 'WARDEN'), async 
 
     res.json({ success: true, complaint });
   } catch (error) {
+    console.error('Assign complaint error:', error);
     res.status(500).json({ success: false, message: 'Failed to assign complaint.' });
   }
 });
@@ -337,7 +426,16 @@ router.put('/:id/status', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STAFF'
   try {
     await ensureComplaintSchema();
 
-    const complaint = await Complaint.findByPk(req.params.id);
+    if (!complaintSchemaState.tableExists) {
+      return res.status(503).json({
+        success: false,
+        message: 'Complaints table is not available on this server yet. Please run complaint migration.'
+      });
+    }
+
+    const complaint = await Complaint.findByPk(req.params.id, {
+      attributes: getComplaintQueryAttributes()
+    });
     if (!complaint) return res.status(404).json({ success: false, message: 'Complaint not found.' });
 
     let studentId = null;
@@ -364,6 +462,7 @@ router.put('/:id/status', verifyToken, authorizeRoles('ADMIN', 'WARDEN', 'STAFF'
 
     res.json({ success: true, complaint });
   } catch (error) {
+    console.error('Update complaint status error:', error);
     res.status(500).json({ success: false, message: 'Failed to update complaint.' });
   }
 });
